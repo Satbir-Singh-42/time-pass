@@ -133,7 +133,7 @@ Kagiso Rabada,Bowler,South Africa,110,"South African fast bowler","{""wickets"":
   }
 
   if (isLoading) {
-    return <div className="animate-pulse">Loading players...</div>;
+    return <div className="animate-pulse text-white">Loading players...</div>;
   }
 
   return (
@@ -211,21 +211,21 @@ Kagiso Rabada,Bowler,South Africa,110,"South African fast bowler","{""wickets"":
 
       {/* Add Player Form */}
       {showAddForm && (
-        <Card>
+        <Card className="bg-cricket-card border-cricket-teal/30">
           <CardHeader>
-            <CardTitle>Add New Player</CardTitle>
+            <CardTitle className="text-white">Add New Player</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleAddPlayer} className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="name">Player Name</Label>
-                <Input id="name" name="name" required />
+                <Label htmlFor="name" className="text-cricket-teal">Player Name</Label>
+                <Input id="name" name="name" required className="bg-cricket-navy-dark border-cricket-teal/50 text-white" />
               </div>
               
               <div>
-                <Label htmlFor="role">Role</Label>
+                <Label htmlFor="role" className="text-cricket-teal">Role</Label>
                 <Select name="role" required>
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-cricket-navy-dark border-cricket-teal/50 text-white">
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
                   <SelectContent>
@@ -238,30 +238,30 @@ Kagiso Rabada,Bowler,South Africa,110,"South African fast bowler","{""wickets"":
               </div>
 
               <div>
-                <Label htmlFor="country">Country</Label>
-                <Input id="country" name="country" required />
+                <Label htmlFor="country" className="text-cricket-teal">Country</Label>
+                <Input id="country" name="country" required className="bg-cricket-navy-dark border-cricket-teal/50 text-white" />
               </div>
 
               <div>
-                <Label htmlFor="basePrice">Base Price (₹ Lakhs)</Label>
-                <Input id="basePrice" name="basePrice" type="number" min="5" max="2000" required />
+                <Label htmlFor="basePrice" className="text-cricket-teal">Base Price (₹ Lakhs)</Label>
+                <Input id="basePrice" name="basePrice" type="number" min="5" max="2000" required className="bg-cricket-navy-dark border-cricket-teal/50 text-white" />
               </div>
 
               <div className="col-span-2">
-                <Label htmlFor="bio">Biography</Label>
-                <Textarea id="bio" name="bio" rows={3} />
+                <Label htmlFor="bio" className="text-cricket-teal">Biography</Label>
+                <Textarea id="bio" name="bio" rows={3} className="bg-cricket-navy-dark border-cricket-teal/50 text-white" />
               </div>
 
               <div className="col-span-2">
-                <Label htmlFor="performanceStats">Performance Stats (JSON)</Label>
-                <Textarea id="performanceStats" name="performanceStats" rows={2} placeholder='{"runs": 5000, "wickets": 200, "average": 45.5}' />
+                <Label htmlFor="performanceStats" className="text-cricket-teal">Performance Stats (JSON)</Label>
+                <Textarea id="performanceStats" name="performanceStats" rows={2} placeholder='{"runs": 5000, "wickets": 200, "average": 45.5}' className="bg-cricket-navy-dark border-cricket-teal/50 text-white" />
               </div>
 
               <div className="col-span-2 flex gap-2">
-                <Button type="submit" disabled={addPlayerMutation.isPending}>
+                <Button type="submit" disabled={addPlayerMutation.isPending} className="bg-cricket-teal hover:bg-cricket-teal/80">
                   {addPlayerMutation.isPending ? "Adding..." : "Add Player"}
                 </Button>
-                <Button type="button" variant="outline" onClick={() => setShowAddForm(false)}>
+                <Button type="button" variant="outline" onClick={() => setShowAddForm(false)} className="border-cricket-teal/50 text-cricket-teal">
                   Cancel
                 </Button>
               </div>
@@ -271,50 +271,62 @@ Kagiso Rabada,Bowler,South Africa,110,"South African fast bowler","{""wickets"":
       )}
 
       {/* Players Table */}
-      <Card>
+      <Card className="bg-cricket-card border-cricket-teal/30">
         <CardHeader>
-          <CardTitle>Players ({filteredPlayers.length})</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-white">Players ({filteredPlayers.length})</CardTitle>
+          <CardDescription className="text-cricket-teal/70">
             Manage your player database and organize them into pools for auction.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left p-2">Name</th>
-                  <th className="text-left p-2">Role</th>
-                  <th className="text-left p-2">Country</th>
-                  <th className="text-left p-2">Base Price</th>
-                  <th className="text-left p-2">Pool</th>
-                  <th className="text-left p-2">Status</th>
-                  <th className="text-left p-2">Team</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredPlayers.map((player) => (
-                  <tr key={player.id} className="border-b hover:bg-gray-50">
-                    <td className="p-2 font-medium">{player.name}</td>
-                    <td className="p-2">{player.role}</td>
-                    <td className="p-2">{player.country}</td>
-                    <td className="p-2">₹{player.basePrice}L</td>
-                    <td className="p-2">{player.pool || "Unassigned"}</td>
-                    <td className="p-2">
-                      <span className={`px-2 py-1 rounded-full text-xs ${
-                        player.status === "Available" ? "bg-green-100 text-green-800" :
-                        player.status === "Sold" ? "bg-blue-100 text-blue-800" :
-                        "bg-red-100 text-red-800"
-                      }`}>
-                        {player.status}
-                      </span>
-                    </td>
-                    <td className="p-2">{player.assignedTeam || "-"}</td>
+          {filteredPlayers.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-cricket-teal/70">No players found.</p>
+              <p className="text-sm text-cricket-teal/50 mt-2">
+                {players.length === 0 
+                  ? "Add your first player to get started."
+                  : "Try adjusting your search filters."
+                }
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="border-b border-cricket-teal/30">
+                    <th className="text-left p-2 text-cricket-teal">Name</th>
+                    <th className="text-left p-2 text-cricket-teal">Role</th>
+                    <th className="text-left p-2 text-cricket-teal">Country</th>
+                    <th className="text-left p-2 text-cricket-teal">Base Price</th>
+                    <th className="text-left p-2 text-cricket-teal">Pool</th>
+                    <th className="text-left p-2 text-cricket-teal">Status</th>
+                    <th className="text-left p-2 text-cricket-teal">Team</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {filteredPlayers.map((player) => (
+                    <tr key={player.id} className="border-b border-cricket-teal/20">
+                      <td className="p-2 font-medium text-white">{player.name}</td>
+                      <td className="p-2 text-cricket-teal/70">{player.role}</td>
+                      <td className="p-2 text-cricket-teal/70">{player.country}</td>
+                      <td className="p-2 text-cricket-gold">₹{player.basePrice}L</td>
+                      <td className="p-2 text-cricket-teal/70">{player.pool || "Unassigned"}</td>
+                      <td className="p-2">
+                        <Badge className={
+                          player.status === "Available" ? "bg-green-500/20 text-green-400 border-green-500/50" :
+                          player.status === "Sold" ? "bg-blue-500/20 text-blue-400 border-blue-500/50" :
+                          "bg-red-500/20 text-red-400 border-red-500/50"
+                        }>
+                          {player.status}
+                        </Badge>
+                      </td>
+                      <td className="p-2 text-cricket-gold">{player.assignedTeam || "-"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

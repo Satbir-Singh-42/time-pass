@@ -117,12 +117,12 @@ export default function PoolManagement() {
         {availablePools.map((poolName) => {
           const poolPlayers = getPlayersByPool(poolName);
           return (
-            <Card key={poolName} className="cursor-pointer hover:shadow-md transition-shadow"
+            <Card key={poolName} className="bg-cricket-card border-cricket-teal/30 cursor-pointer hover:shadow-md transition-shadow"
                   onClick={() => setSelectedPool(poolName)}>
               <CardHeader className="pb-3">
-                <CardTitle className="flex items-center justify-between">
+                <CardTitle className="flex items-center justify-between text-white">
                   {poolName}
-                  <Badge variant="secondary">
+                  <Badge variant="secondary" className="bg-cricket-teal/20 text-cricket-teal border-cricket-teal/50">
                     <Users className="h-3 w-3 mr-1" />
                     {poolPlayers.length}
                   </Badge>
@@ -130,16 +130,16 @@ export default function PoolManagement() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm text-cricket-teal/70">
                     Batsmen: {poolPlayers.filter(p => p.role === "Batsman").length}
                   </div>
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm text-cricket-teal/70">
                     Bowlers: {poolPlayers.filter(p => p.role === "Bowler").length}
                   </div>
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm text-cricket-teal/70">
                     All-rounders: {poolPlayers.filter(p => p.role === "All-rounder").length}
                   </div>
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm text-cricket-teal/70">
                     Wicket-keepers: {poolPlayers.filter(p => p.role === "Wicket-keeper").length}
                   </div>
                 </div>
@@ -151,20 +151,20 @@ export default function PoolManagement() {
 
       {/* Unassigned Players */}
       {unassignedPlayers.length > 0 && (
-        <Card>
+        <Card className="bg-cricket-card border-cricket-teal/30">
           <CardHeader>
-            <CardTitle>Unassigned Players ({unassignedPlayers.length})</CardTitle>
-            <CardDescription>
-              Players not yet assigned to any pool. Drag them to pools or use auto-distribute.
+            <CardTitle className="text-white">Unassigned Players ({unassignedPlayers.length})</CardTitle>
+            <CardDescription className="text-cricket-teal/70">
+              Players not yet assigned to any pool. Use auto-distribute or assign manually.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {unassignedPlayers.map((player) => (
-                <div key={player.id} className="border rounded-lg p-3 bg-gray-50">
-                  <div className="font-medium">{player.name}</div>
-                  <div className="text-sm text-gray-600">{player.role} • {player.country}</div>
-                  <div className="text-sm text-gray-600">₹{player.basePrice}L</div>
+                <div key={player.id} className="border border-cricket-teal/30 rounded-lg p-3 bg-cricket-navy-dark">
+                  <div className="font-medium text-white">{player.name}</div>
+                  <div className="text-sm text-cricket-teal/70">{player.role} • {player.country}</div>
+                  <div className="text-sm text-cricket-gold">₹{player.basePrice}L</div>
                   <div className="mt-2">
                     <Select onValueChange={(poolName) => movePlayerToPool(player.id, poolName)}>
                       <SelectTrigger className="h-8">
@@ -187,47 +187,53 @@ export default function PoolManagement() {
       )}
 
       {/* Selected Pool Details */}
-      <Card>
+      <Card className="bg-cricket-card border-cricket-teal/30">
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
+          <CardTitle className="flex items-center justify-between text-white">
             {selectedPool} Players
-            <Badge variant="outline">
+            <Badge variant="outline" className="text-cricket-teal border-cricket-teal/50">
               {getPlayersByPool(selectedPool).length} players
             </Badge>
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-cricket-teal/70">
             Manage players in {selectedPool}. You can move them to other pools or remove them.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left p-2">Name</th>
-                  <th className="text-left p-2">Role</th>
-                  <th className="text-left p-2">Country</th>
-                  <th className="text-left p-2">Base Price</th>
-                  <th className="text-left p-2">Status</th>
-                  <th className="text-left p-2">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {getPlayersByPool(selectedPool).map((player) => (
-                  <tr key={player.id} className="border-b hover:bg-gray-50">
-                    <td className="p-2 font-medium">{player.name}</td>
-                    <td className="p-2">{player.role}</td>
-                    <td className="p-2">{player.country}</td>
-                    <td className="p-2">₹{player.basePrice}L</td>
-                    <td className="p-2">
-                      <span className={`px-2 py-1 rounded-full text-xs ${
-                        player.status === "Available" ? "bg-green-100 text-green-800" :
-                        player.status === "Sold" ? "bg-blue-100 text-blue-800" :
-                        "bg-red-100 text-red-800"
-                      }`}>
-                        {player.status}
-                      </span>
-                    </td>
+          {getPlayersByPool(selectedPool).length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-cricket-teal/70">No players in this pool.</p>
+              <p className="text-sm text-cricket-teal/50 mt-2">Assign players from the unassigned section above.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="border-b border-cricket-teal/30">
+                    <th className="text-left p-2 text-cricket-teal">Name</th>
+                    <th className="text-left p-2 text-cricket-teal">Role</th>
+                    <th className="text-left p-2 text-cricket-teal">Country</th>
+                    <th className="text-left p-2 text-cricket-teal">Base Price</th>
+                    <th className="text-left p-2 text-cricket-teal">Status</th>
+                    <th className="text-left p-2 text-cricket-teal">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {getPlayersByPool(selectedPool).map((player) => (
+                    <tr key={player.id} className="border-b border-cricket-teal/20">
+                      <td className="p-2 font-medium text-white">{player.name}</td>
+                      <td className="p-2 text-cricket-teal/70">{player.role}</td>
+                      <td className="p-2 text-cricket-teal/70">{player.country}</td>
+                      <td className="p-2 text-cricket-gold">₹{player.basePrice}L</td>
+                      <td className="p-2">
+                        <Badge className={
+                          player.status === "Available" ? "bg-green-500/20 text-green-400 border-green-500/50" :
+                          player.status === "Sold" ? "bg-blue-500/20 text-blue-400 border-blue-500/50" :
+                          "bg-red-500/20 text-red-400 border-red-500/50"
+                        }>
+                          {player.status}
+                        </Badge>
+                      </td>
                     <td className="p-2">
                       <div className="flex gap-1">
                         <Select onValueChange={(poolName) => movePlayerToPool(player.id, poolName)}>
@@ -256,6 +262,7 @@ export default function PoolManagement() {
               </tbody>
             </table>
           </div>
+          )}
         </CardContent>
       </Card>
     </div>
