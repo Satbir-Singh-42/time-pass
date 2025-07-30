@@ -6,7 +6,9 @@ import {
   type Team, 
   type InsertTeam, 
   type Auction, 
-  type InsertAuction 
+  type InsertAuction,
+  type AuctionLog,
+  type InsertAuctionLog
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -38,6 +40,14 @@ export interface IStorage {
   createAuction(auction: InsertAuction): Promise<Auction>;
   updateAuction(id: string, updates: Partial<Auction>): Promise<Auction>;
   deleteAuction(id: string): Promise<boolean>;
+  
+  // Auction logs management
+  getAllAuctionLogs(): Promise<AuctionLog[]>;
+  createAuctionLog(log: InsertAuctionLog): Promise<AuctionLog>;
+  
+  // Player pools management
+  getPlayersByPool(pool: string): Promise<Player[]>;
+  getAllPools(): Promise<string[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -45,19 +55,21 @@ export class MemStorage implements IStorage {
   private players: Map<string, Player>;
   private teams: Map<string, Team>;
   private auctions: Map<string, Auction>;
+  private auctionLogs: Map<string, AuctionLog>;
 
   constructor() {
     this.users = new Map();
     this.players = new Map();
     this.teams = new Map();
     this.auctions = new Map();
+    this.auctionLogs = new Map();
     
-    // Initialize with some sample data
+    // Initialize with clean state - no sample data
     this.initializeSampleData();
   }
 
   private async initializeSampleData() {
-    // Initialize with completely empty state - no dummy/fake data
+    // Initialize with completely clean state - no dummy/fake data
     // All data will be added only through the admin interface
     // This ensures data integrity and prevents confusion with fake entries
   }
@@ -94,10 +106,12 @@ export class MemStorage implements IStorage {
     const player: Player = { 
       ...insertPlayer, 
       id,
-      status: insertPlayer.status || "Available",
+      status: "Available",
+      soldPrice: null,
       assignedTeam: null,
       pool: insertPlayer.pool || null,
-      isDuplicate: false,
+      bio: insertPlayer.bio || null,
+      performanceStats: insertPlayer.performanceStats || null,
       createdAt: new Date()
     };
     this.players.set(id, player);
@@ -145,11 +159,11 @@ export class MemStorage implements IStorage {
     const team: Team = { 
       ...insertTeam, 
       id,
-      budget: insertTeam.budget ?? 1500000,
-      remainingBudget: insertTeam.budget ?? 1500000,
+      budget: insertTeam.budget ?? 8000, // 80 lakhs default
+      remainingBudget: insertTeam.budget ?? 8000,
+      totalSpent: 0,
       logoUrl: insertTeam.logoUrl || null,
       playersCount: 0,
-      captainId: null,
       totalPoints: 0,
       createdAt: new Date()
     };
@@ -183,27 +197,17 @@ export class MemStorage implements IStorage {
     
     const teamPlayers = Array.from(this.players.values()).filter(p => p.assignedTeam === teamId);
     const playersCount = teamPlayers.length;
-    const totalPoints = teamPlayers.reduce((sum, player) => sum + player.points, 0);
     
-    // Calculate total spent (simplified calculation based on base prices)
+    // Calculate total spent based on sold prices (in lakhs)
     const totalSpent = teamPlayers.reduce((sum, player) => {
-      const priceStr = player.basePrice.replace(/[₹,]/g, '');
-      let price = 0;
-      if (priceStr.includes('Cr')) {
-        price = parseFloat(priceStr.replace('Cr', '')) * 10000000;
-      } else if (priceStr.includes('L')) {
-        price = parseFloat(priceStr.replace('L', '')) * 100000;
-      } else {
-        price = parseFloat(priceStr) || 0;
-      }
-      return sum + price;
+      return sum + (player.soldPrice || 0);
     }, 0);
     
     const remainingBudget = team.budget - totalSpent;
     
     await this.updateTeam(teamId, {
       playersCount,
-      totalPoints,
+      totalSpent,
       remainingBudget: Math.max(0, remainingBudget)
     });
   }
@@ -226,10 +230,12 @@ export class MemStorage implements IStorage {
     const auction: Auction = { 
       ...insertAuction, 
       id,
-      biddingTeam: insertAuction.biddingTeam ?? null,
+      winningTeam: insertAuction.winningTeam ?? null,
+      finalPrice: null,
       isActive: false,
+      isCompleted: false,
       startedAt: new Date(),
-      endedAt: null
+      completedAt: null
     };
     this.auctions.set(id, auction);
     return auction;
@@ -246,6 +252,35 @@ export class MemStorage implements IStorage {
 
   async deleteAuction(id: string): Promise<boolean> {
     return this.auctions.delete(id);
+  }
+
+  // Auction logs methods
+  async getAllAuctionLogs(): Promise<AuctionLog[]> {
+    return Array.from(this.auctionLogs.values());
+  }
+
+  async createAuctionLog(insertLog: InsertAuctionLog): Promise<AuctionLog> {
+    const id = randomUUID();
+    const log: AuctionLog = { 
+      ...insertLog, 
+      id,
+      timestamp: new Date()
+    };
+    this.auctionLogs.set(id, log);
+    return log;
+  }
+
+  // Player pool methods
+  async getPlayersByPool(pool: string): Promise<Player[]> {
+    return Array.from(this.players.values()).filter(p => p.pool === pool);
+  }
+
+  async getAllPools(): Promise<string[]> {
+    const pools = new Set<string>();
+    Array.from(this.players.values()).forEach(player => {
+      if (player.pool) pools.add(player.pool);
+    });
+    return Array.from(pools).sort();
   }
 }
 

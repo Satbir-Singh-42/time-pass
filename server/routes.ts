@@ -4,7 +4,8 @@ import { storage } from "./storage";
 import { 
   insertPlayerSchema, 
   insertTeamSchema, 
-  insertAuctionSchema 
+  insertAuctionSchema,
+  insertAuctionLogSchema 
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -184,32 +185,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const unsoldPlayers = players.filter(p => p.status === "Unsold");
       const activeAuctions = auctions.filter(a => a.isActive);
 
-      // Calculate total revenue from sold players
-      const totalRevenue = soldPlayers.reduce((sum, player) => {
-        // Parse basePrice string format (₹15Cr, ₹80L) to number
-        const priceStr = player.basePrice.replace(/[₹,]/g, '');
-        let price = 0;
-        if (priceStr.includes('Cr')) {
-          price = parseFloat(priceStr.replace('Cr', '')) * 10000000;
-        } else if (priceStr.includes('L')) {
-          price = parseFloat(priceStr.replace('L', '')) * 100000;
-        } else {
-          price = parseFloat(priceStr) || 0;
-        }
-        return sum + price;
+      // Calculate total spent from sold players (using soldPrice in lakhs)
+      const totalSpent = soldPlayers.reduce((sum, player) => {
+        return sum + (player.soldPrice || 0);
       }, 0);
+      
+      // Calculate total budget across all teams
+      const totalBudget = teams.reduce((sum, team) => sum + team.budget, 0);
 
       const stats = {
         totalPlayers: players.length,
-        totalTeams: teams.length,
-        soldPlayers: soldPlayers.length,
         availablePlayers: availablePlayers.length,
-        unsoldPlayers: unsoldPlayers.length,
-        activeAuctions: activeAuctions.length,
-        totalRevenue
+        totalTeams: teams.length,
+        totalBudget,
+        playersSold: soldPlayers.length,
+        totalSpent,
+        auctionStatus: activeAuctions.length > 0 ? "Active" : "Not Started",
+        activeAuctions: activeAuctions.length
       };
 
       res.json(stats);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Auction logs routes
+  app.get("/api/auction-logs", async (req, res) => {
+    try {
+      const logs = await storage.getAllAuctionLogs();
+      res.json(logs);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/auction-logs", async (req, res) => {
+    try {
+      const logData = insertAuctionLogSchema.parse(req.body);
+      const log = await storage.createAuctionLog(logData);
+      res.status(201).json(log);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Pool management routes
+  app.get("/api/pools", async (req, res) => {
+    try {
+      const pools = await storage.getAllPools();
+      res.json(pools);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/pools/:poolName/players", async (req, res) => {
+    try {
+      const players = await storage.getPlayersByPool(req.params.poolName);
+      res.json(players);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Export routes
+  app.get("/api/export/results", async (req, res) => {
+    try {
+      const [players, teams, logs] = await Promise.all([
+        storage.getAllPlayers(),
+        storage.getAllTeams(),
+        storage.getAllAuctionLogs()
+      ]);
+
+      // Create CSV content
+      const csvContent = [
+        'Player Name,Role,Country,Base Price (₹L),Sold Price (₹L),Team,Status',
+        ...players.map(p => `${p.name},${p.role},${p.country},${p.basePrice},${p.soldPrice || 'N/A'},${p.assignedTeam || 'N/A'},${p.status}`)
+      ].join('\n');
+
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename="ipl-auction-results.csv"');
+      res.send(csvContent);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

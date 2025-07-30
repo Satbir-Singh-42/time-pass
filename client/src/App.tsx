@@ -8,7 +8,7 @@ import { auth, hasFirebaseCredentials } from "@/lib/firebase";
 import { onAuthStateChanged, User } from "firebase/auth";
 import Landing from "@/pages/landing";
 import Login from "@/pages/login";
-import AdminDashboard from "@/pages/admin-dashboard";
+import AuctionDashboard from "@/pages/auction-dashboard";
 import NotFound from "@/pages/not-found";
 
 function App() {
@@ -48,10 +48,10 @@ function App() {
           <Route path="/" component={Landing} />
           <Route path="/login" component={Login} />
           <Route path="/dashboard">
-            {() => user ? <AdminDashboard /> : <Login />}
+            {() => user ? <AuctionDashboard /> : <Login />}
           </Route>
           <Route path="/admin/dashboard">
-            {() => user ? <AdminDashboard /> : <Login />}
+            {() => user ? <AuctionDashboard /> : <Login />}
           </Route>
           <Route component={NotFound} />
         </Switch>
