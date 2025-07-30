@@ -231,7 +231,7 @@ export default function AuctionLogClean() {
                 <TableHeader>
                   <TableRow className="border-cricket-teal/30">
                     <TableHead 
-                      className="text-cricket-teal cursor-pointer hover:text-white"
+                      className="text-cricket-teal cursor-pointer "
                       onClick={() => {
                         setSortField("playerId");
                         setSortOrder(sortOrder === "asc" ? "desc" : "asc");
@@ -242,7 +242,7 @@ export default function AuctionLogClean() {
                     <TableHead className="text-cricket-teal">Role</TableHead>
                     <TableHead className="text-cricket-teal">Team</TableHead>
                     <TableHead 
-                      className="text-cricket-teal cursor-pointer hover:text-white"
+                      className="text-cricket-teal cursor-pointer "
                       onClick={() => {
                         setSortField("soldPrice");
                         setSortOrder(sortOrder === "asc" ? "desc" : "asc");
@@ -251,7 +251,7 @@ export default function AuctionLogClean() {
                       Final Price {sortField === "soldPrice" && (sortOrder === "asc" ? <SortAsc className="inline h-4 w-4" /> : <SortDesc className="inline h-4 w-4" />)}
                     </TableHead>
                     <TableHead 
-                      className="text-cricket-teal cursor-pointer hover:text-white"
+                      className="text-cricket-teal cursor-pointer "
                       onClick={() => {
                         setSortField("timestamp");
                         setSortOrder(sortOrder === "asc" ? "desc" : "asc");
@@ -263,7 +263,7 @@ export default function AuctionLogClean() {
                 </TableHeader>
                 <TableBody>
                   {filteredLogs.map((log, index) => (
-                    <TableRow key={log.id} className="border-cricket-teal/20 hover:bg-cricket-navy-dark">
+                    <TableRow key={log.id} className="border-cricket-teal/20 ">
                       <TableCell className="font-medium text-white">{getPlayerName(log.playerId)}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className="text-cricket-teal border-cricket-teal/50">

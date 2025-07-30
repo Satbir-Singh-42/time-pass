@@ -338,7 +338,6 @@ export default function PlayerPoolImproved({ players = [], isLoading }: PlayerPo
       return;
     }
 
-    console.log("Form submission data:", data);
     
     // Enhanced duplicate check with better validation
     if (!data.name || !data.name.trim()) {
@@ -379,15 +378,14 @@ export default function PlayerPoolImproved({ players = [], isLoading }: PlayerPo
         name: data.name.trim(),
         role: data.role,
         country: data.country,
-        basePrice: formatPriceForInput(data.basePrice / 10000000),
+        basePrice: data.basePrice,
         points: data.points,
         age: data.age,
         pool: data.pool === "none" ? undefined : data.pool || undefined,
         stats: JSON.stringify({ runs: data.runs, wickets: data.wickets, wicketkeeping: data.catches }),
-        status: data.pool && data.pool !== "none" ? "Pooled" as const : "Available" as const
+        status: data.pool && data.pool !== "none" ? "Available" as const : "Available" as const
       };
 
-      console.log("Player data to submit:", playerData);
 
       if (editingPlayer) {
         // Update existing player with proper ID handling
@@ -504,7 +502,7 @@ export default function PlayerPoolImproved({ players = [], isLoading }: PlayerPo
         if (player && (player.status === 'Available' || player.status === 'Unsold')) {
           return updatePlayerMutation.mutateAsync({
             id: playerId,
-            updates: { pool: poolName, status: 'Pooled' }
+            updates: { pool: poolName, status: 'Available' }
           });
         }
         return Promise.resolve();
@@ -528,7 +526,6 @@ export default function PlayerPoolImproved({ players = [], isLoading }: PlayerPo
   };
 
   const handleEditPlayer = (player: Player) => {
-    console.log("Starting edit for player:", player);
     
     // Prevent edit during any pending operations
     if (createPlayerMutation.isPending || updatePlayerMutation.isPending || deletePlayerMutation.isPending) {
@@ -566,7 +563,6 @@ export default function PlayerPoolImproved({ players = [], isLoading }: PlayerPo
       }
       
       setIsAddPlayerOpen(true);
-      console.log("Edit form opened successfully");
     } catch (error) {
       console.error("Error setting up edit form:", error);
       toast({
@@ -678,12 +674,12 @@ export default function PlayerPoolImproved({ players = [], isLoading }: PlayerPo
             name: playerName,
             role: validRole as "Batsman" | "Bowler" | "All-rounder" | "Wicket-keeper",
             country: values[headers.indexOf('country')] || 'India',
-            basePrice: formattedBasePrice,
+            basePrice: numericBasePrice,
             age: parseInt(values[headers.indexOf('age')]) || 25,
             points: parseInt(values[headers.indexOf('points')]) || 0,
-            pool: values[headers.indexOf('pool')] || null,
+            pool: values[headers.indexOf('pool')] || undefined,
             stats: JSON.stringify({ runs, wickets, wicketkeeping: catches }),
-            status: values[headers.indexOf('pool')] ? 'Pooled' as const : 'Available' as const
+            status: 'Available' as const
           };
           
           await createPlayerMutation.mutateAsync(playerData);
@@ -1195,7 +1191,7 @@ export default function PlayerPoolImproved({ players = [], isLoading }: PlayerPo
                       />
                     </TableHead>
                     <TableHead 
-                      className="cursor-pointer hover:bg-muted/50 h-10 sm:h-12 text-xs sm:text-sm p-2 font-medium"
+                      className="cursor-pointer  h-10 sm:h-12 text-xs sm:text-sm p-2 font-medium"
                       onClick={() => handleSort("name")}
                     >
                       Name
@@ -1204,7 +1200,7 @@ export default function PlayerPoolImproved({ players = [], isLoading }: PlayerPo
                       )}
                     </TableHead>
                     <TableHead 
-                      className="cursor-pointer hover:bg-muted/50 h-10 sm:h-12 text-xs sm:text-sm p-2 font-medium hidden sm:table-cell"
+                      className="cursor-pointer  h-10 sm:h-12 text-xs sm:text-sm p-2 font-medium hidden sm:table-cell"
                       onClick={() => handleSort("role")}
                     >
                       Role
@@ -1214,7 +1210,7 @@ export default function PlayerPoolImproved({ players = [], isLoading }: PlayerPo
                     </TableHead>
                     <TableHead className="h-10 sm:h-12 text-xs sm:text-sm p-2 font-medium hidden md:table-cell">Country</TableHead>
                     <TableHead 
-                      className="cursor-pointer hover:bg-muted/50 h-10 sm:h-12 text-xs sm:text-sm p-2 font-medium"
+                      className="cursor-pointer  h-10 sm:h-12 text-xs sm:text-sm p-2 font-medium"
                       onClick={() => handleSort("base_price")}
                     >
                       Price
@@ -1223,7 +1219,7 @@ export default function PlayerPoolImproved({ players = [], isLoading }: PlayerPo
                       )}
                     </TableHead>
                     <TableHead 
-                      className="cursor-pointer hover:bg-muted/50 h-10 sm:h-12 text-xs sm:text-sm p-2 font-medium hidden sm:table-cell"
+                      className="cursor-pointer  h-10 sm:h-12 text-xs sm:text-sm p-2 font-medium hidden sm:table-cell"
                       onClick={() => handleSort("age")}
                     >
                       Age
@@ -1232,7 +1228,7 @@ export default function PlayerPoolImproved({ players = [], isLoading }: PlayerPo
                       )}
                     </TableHead>
                     <TableHead 
-                      className="cursor-pointer hover:bg-muted/50 h-10 sm:h-12 text-xs sm:text-sm p-2 font-medium hidden lg:table-cell"
+                      className="cursor-pointer  h-10 sm:h-12 text-xs sm:text-sm p-2 font-medium hidden lg:table-cell"
                       onClick={() => handleSort("points")}
                     >
                       Points
@@ -1258,7 +1254,7 @@ export default function PlayerPoolImproved({ players = [], isLoading }: PlayerPo
                     </TableRow>
                   ) : (
                     paginatedPlayers.map((player) => (
-                      <TableRow key={player.player_id} className="hover:bg-muted/50 h-10 sm:h-12">
+                      <TableRow key={player.player_id} className=" h-10 sm:h-12">
                         <TableCell className="p-1 sm:p-2">
                           <Checkbox
                             checked={selectedPlayers.has(player.player_id || '')}

@@ -31,6 +31,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
 
 // Settings form schema
 const settingsFormSchema = z.object({
@@ -57,14 +58,23 @@ export default function Settings() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
-  // Sample system stats - in real app this would come from Firebase
-  const [systemStats] = useState<SystemStats>({
-    totalPlayers: 247,
-    totalTeams: 8,
-    totalAuctions: 45,
-    dataSize: "2.4 MB",
-    lastBackup: new Date("2025-01-30T14:30:00")
+  // Real system stats from API
+  const { data: dashboardData, isLoading: statsLoading } = useQuery<{
+    totalPlayers: number;
+    totalTeams: number;
+    totalAuctions: number;
+    auctionedPlayers: number;
+  }>({
+    queryKey: ["/api/dashboard"],
   });
+
+  const systemStats: SystemStats = {
+    totalPlayers: dashboardData?.totalPlayers || 0,
+    totalTeams: dashboardData?.totalTeams || 0,
+    totalAuctions: dashboardData?.totalAuctions || 0,
+    dataSize: "Real-time",
+    lastBackup: new Date() // Real-time data
+  };
 
   const form = useForm<SettingsFormData>({
     resolver: zodResolver(settingsFormSchema),
@@ -156,7 +166,6 @@ export default function Settings() {
     reader.onload = (e) => {
       try {
         const data = JSON.parse(e.target?.result as string);
-        console.log("Importing data:", data);
         
         toast({
           title: "Import Complete",
@@ -408,7 +417,7 @@ export default function Settings() {
                     type="file"
                     accept=".json"
                     onChange={handleImportData}
-                    className="w-full text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-emerald-600 file:text-white hover:file:bg-emerald-700"
+                    className="w-full text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-emerald-600 file:text-white "
                   />
                   <p className="text-xs text-slate-400">
                     Select a valid backup JSON file
@@ -483,7 +492,7 @@ export default function Settings() {
                 <AlertDialogTrigger asChild>
                   <Button 
                     variant="destructive"
-                    className="bg-red-600 hover:bg-red-700 text-white"
+                    className="bg-red-600  text-white"
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
                     Reset All Data
@@ -514,7 +523,7 @@ export default function Settings() {
                     </AlertDialogCancel>
                     <AlertDialogAction
                       onClick={handleResetAllData}
-                      className="bg-red-600 hover:bg-red-700 text-white"
+                      className="bg-red-600  text-white"
                     >
                       {isLoading ? (
                         <>

@@ -62,7 +62,7 @@ export default function DashboardHome() {
     subtitle?: string;
     loading?: boolean;
   }) => (
-    <Card className="bg-cricket-card border-cricket-teal/30 hover:border-cricket-teal/50 transition-all duration-300">
+    <Card className="bg-cricket-card border-cricket-teal/30  transition-all duration-300">
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <div className="flex-1">

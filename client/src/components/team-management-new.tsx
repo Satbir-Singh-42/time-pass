@@ -370,7 +370,7 @@ export default function TeamManagementReal() {
                             </AlertDialogCancel>
                             <AlertDialogAction
                               onClick={() => deleteTeamMutation.mutate(team.id)}
-                              className="bg-red-600 hover:bg-red-700"
+                              className="bg-red-600 "
                             >
                               Delete
                             </AlertDialogAction>
