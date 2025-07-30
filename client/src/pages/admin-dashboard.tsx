@@ -40,11 +40,10 @@ import { signOut, auth } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { useFirestoreData } from "@/hooks/useFirestore";
 import { useIsMobile } from "@/hooks/use-mobile";
-import PlayerPoolImproved from "@/components/player-pool-improved";
-import EnhancedPoolManagement from "@/components/enhanced-pool-management";
-import TeamManagement from "@/components/team-management";
-import SystemIntegrationTest from "@/components/system-integration-test";
-import DataFlowTester from "@/components/data-flow-tester";
+import AdminPlayerManagement from "@/components/admin-player-management";
+import AdminPoolManagement from "@/components/admin-pool-management";
+import TeamManagementNew from "@/components/team-management-new";
+import cricketImage from "@assets/image_1753847253370.png";
 
 
 
@@ -477,28 +476,17 @@ export default function AdminDashboard() {
 
               {/* Players Tab */}
               <TabsContent value="players" className="space-y-6">
-                <PlayerPoolImproved 
-                  players={players || []} 
-                  isLoading={playersLoading} 
-                />
+                <AdminPlayerManagement />
               </TabsContent>
 
               {/* Pool Management Tab */}
               <TabsContent value="pools" className="space-y-6">
-                <EnhancedPoolManagement 
-                  players={players || []} 
-                  isLoading={playersLoading} 
-                  onNavigateToPlayers={() => setActiveTab('players')}
-                />
+                <AdminPoolManagement />
               </TabsContent>
 
               {/* Teams Tab */}
               <TabsContent value="teams" className="space-y-6">
-                <TeamManagement 
-                  teams={teams || []} 
-                  players={players || []}
-                  isLoading={teamsLoading} 
-                />
+                <TeamManagementNew />
               </TabsContent>
 
               {/* Auction Tab */}
