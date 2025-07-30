@@ -40,10 +40,14 @@ import { signOut, auth } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { useFirestoreData } from "@/hooks/useFirestore";
 import { useIsMobile } from "@/hooks/use-mobile";
-import AdminPlayerManagement from "@/components/admin-player-management";
-import AdminPoolManagement from "@/components/admin-pool-management";
-import TeamManagementNew from "@/components/team-management-new";
-import cricketImage from "@assets/image_1753847253370.png";
+import DashboardHome from "@/components/dashboard-home";
+import UploadPlayers from "@/components/upload-players";
+import ManagePools from "@/components/manage-pools";
+import ManageTeams from "@/components/manage-teams";
+import LiveAuction from "@/components/live-auction";
+import AuctionLog from "@/components/auction-log";
+import Leaderboard from "@/components/leaderboard";
+import Settings from "@/components/settings";
 
 
 
@@ -279,8 +283,8 @@ export default function AdminDashboard() {
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               {/* Overview Tab - Dashboard Overview */}
               <TabsContent value="overview" className="space-y-8">
-                {/* Main Dashboard Overview Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 gap-6 max-w-full">
+                <DashboardHome />
+              </TabsContent>
                   
                   {/* Total Players Uploaded */}
                   <Card className="bg-cricket-card border-cricket-teal/30 auction-card-hover">
@@ -476,86 +480,37 @@ export default function AdminDashboard() {
 
               {/* Players Tab */}
               <TabsContent value="players" className="space-y-6">
-                <AdminPlayerManagement />
+                <UploadPlayers />
               </TabsContent>
 
               {/* Pool Management Tab */}
               <TabsContent value="pools" className="space-y-6">
-                <AdminPoolManagement />
+                <ManagePools />
               </TabsContent>
 
               {/* Teams Tab */}
               <TabsContent value="teams" className="space-y-6">
-                <TeamManagementNew />
+                <ManageTeams />
               </TabsContent>
 
               {/* Auction Tab */}
               <TabsContent value="auction" className="space-y-6">
-                <Card className="bg-cricket-card border-cricket-teal/20">
-                  <CardHeader>
-                    <CardTitle className="text-white font-poppins font-bold uppercase tracking-wide text-xl flex items-center">
-                      <Gavel className="w-6 h-6 mr-3 text-cricket-teal" />
-                      Live Auction Control
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-center py-12">
-                      <Gavel className="w-16 h-16 text-cricket-teal/50 mx-auto mb-4" />
-                      <h3 className="text-xl font-poppins font-bold text-white mb-2">Auction Command Center</h3>
-                      <p className="text-cricket-teal/70 font-inter mb-6">Control the live auction, manage bids, and oversee the entire process.</p>
-                      <Button className="bg-cricket-teal hover:bg-cricket-teal/80 shadow-cricket-teal">
-                        <Activity className="w-4 h-4 mr-2" />
-                        Enter Auction Mode
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                <LiveAuction />
               </TabsContent>
 
               {/* Stats Tab */}
               <TabsContent value="stats" className="space-y-6">
-                <Card className="bg-cricket-card border-cricket-gold/20">
-                  <CardHeader>
-                    <CardTitle className="text-white font-poppins font-bold uppercase tracking-wide text-xl">Leaderboard & Statistics</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-center py-12">
-                      <TrendingUp className="w-16 h-16 text-cricket-gold/50 mx-auto mb-4" />
-                      <h3 className="text-xl font-poppins font-bold text-white mb-2">Performance Analytics</h3>
-                      <p className="text-cricket-gold/70 font-inter mb-6">View detailed statistics, leaderboards, and auction insights.</p>
-                      <Button className="bg-cricket-gold text-cricket-navy hover:bg-cricket-gold/80">
-                        <BarChart3 className="w-4 h-4 mr-2" />
-                        View Analytics
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                <AuctionLog />
               </TabsContent>
 
               {/* Reports Tab */}
               <TabsContent value="reports" className="space-y-6">
-                {/* Comprehensive Feature Testing */}
-                <DataFlowTester />
-                
-                {/* System Integration Test */}
-                <SystemIntegrationTest />
-                
-                <Card className="bg-cricket-card border-cricket-teal/20">
-                  <CardHeader>
-                    <CardTitle className="text-white font-poppins font-bold uppercase tracking-wide text-xl">Reports & Analytics</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-center py-12">
-                      <FileText className="w-16 h-16 text-cricket-teal/50 mx-auto mb-4" />
-                      <h3 className="text-xl font-poppins font-bold text-white mb-2">Comprehensive Reports</h3>
-                      <p className="text-cricket-teal/70 font-inter mb-6">Generate detailed reports for analysis and record-keeping.</p>
-                      <Button className="bg-cricket-teal hover:bg-cricket-teal/80">
-                        <Download className="w-4 h-4 mr-2" />
-                        Generate Reports
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                <Leaderboard />
+              </TabsContent>
+
+              {/* Configuration Tab */}
+              <TabsContent value="config" className="space-y-6">
+                <Settings />
               </TabsContent>
             </Tabs>
           </div>

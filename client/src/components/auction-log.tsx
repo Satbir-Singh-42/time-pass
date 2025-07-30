@@ -1,242 +1,493 @@
-import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileDown, Clock, DollarSign, User } from "lucide-react";
-import type { AuctionLog, Player, Team } from "@shared/schema";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { 
+  Download, 
+  Search, 
+  Filter,
+  FileText,
+  Clock,
+  Users,
+  DollarSign,
+  Trophy,
+  SortAsc,
+  SortDesc,
+  Eye,
+  Calendar
+} from "lucide-react";
 
-export default function AuctionLogComponent() {
-  // Fetch auction logs
-  const { data: logs = [], isLoading } = useQuery<AuctionLog[]>({
-    queryKey: ["/api/auction-logs"],
-    refetchInterval: 5000, // Refresh every 5 seconds
-  });
+import { useToast } from "@/hooks/use-toast";
 
-  // Fetch players and teams for display
-  const { data: players = [] } = useQuery<Player[]>({
-    queryKey: ["/api/players"],
-  });
+// Auction log entry interface
+interface AuctionLogEntry {
+  id: string;
+  srNo: number;
+  playerName: string;
+  assignedTeam: string;
+  finalPrice: number;
+  role: "Batsman" | "Bowler" | "All-rounder" | "Wicket-keeper";
+  timestamp: Date;
+  basePrice: number;
+  evaluationPoints: number;
+  bidDuration: number; // in seconds
+  country: string;
+}
 
-  const { data: teams = [] } = useQuery<Team[]>({
-    queryKey: ["/api/teams"],
-  });
+export default function AuctionLog() {
+  const { toast } = useToast();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedTeam, setSelectedTeam] = useState<string>("all");
+  const [selectedRole, setSelectedRole] = useState<string>("all");
+  const [sortField, setSortField] = useState<"timestamp" | "finalPrice" | "playerName">("timestamp");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
-  // Helper functions
-  const getPlayerName = (playerId: string) => {
-    const player = players.find(p => p.id === playerId);
-    return player?.name || "Unknown Player";
+  // Sample auction log data - in real app this would come from Firebase
+  const [auctionEntries] = useState<AuctionLogEntry[]>([
+    {
+      id: "1",
+      srNo: 1,
+      playerName: "Virat Kohli",
+      assignedTeam: "Mumbai Warriors",
+      finalPrice: 170000000,
+      role: "Batsman",
+      timestamp: new Date("2025-01-30T15:30:00"),
+      basePrice: 160000000,
+      evaluationPoints: 95,
+      bidDuration: 45,
+      country: "India"
+    },
+    {
+      id: "2",
+      srNo: 2,
+      playerName: "Jasprit Bumrah",
+      assignedTeam: "Chennai Kings",
+      finalPrice: 125000000,
+      role: "Bowler",
+      timestamp: new Date("2025-01-30T15:35:00"),
+      basePrice: 120000000,
+      evaluationPoints: 92,
+      bidDuration: 30,
+      country: "India"
+    },
+    {
+      id: "3",
+      srNo: 3,
+      playerName: "Jos Buttler",
+      assignedTeam: "Delhi Capitals",
+      finalPrice: 105000000,
+      role: "Wicket-keeper",
+      timestamp: new Date("2025-01-30T15:40:00"),
+      basePrice: 100000000,
+      evaluationPoints: 89,
+      bidDuration: 35,
+      country: "England"
+    },
+    {
+      id: "4",
+      srNo: 4,
+      playerName: "Rashid Khan",
+      assignedTeam: "Mumbai Warriors",
+      finalPrice: 98000000,
+      role: "Bowler",
+      timestamp: new Date("2025-01-30T15:45:00"),
+      basePrice: 95000000,
+      evaluationPoints: 88,
+      bidDuration: 40,
+      country: "Afghanistan"
+    },
+    {
+      id: "5",
+      srNo: 5,
+      playerName: "Ben Stokes",
+      assignedTeam: "Chennai Kings",
+      finalPrice: 85000000,
+      role: "All-rounder",
+      timestamp: new Date("2025-01-30T15:50:00"),
+      basePrice: 80000000,
+      evaluationPoints: 90,
+      bidDuration: 28,
+      country: "England"
+    }
+  ]);
+
+  const teams = Array.from(new Set(auctionEntries.map(entry => entry.assignedTeam)));
+  const roles = ["Batsman", "Bowler", "All-rounder", "Wicket-keeper"];
+
+  const formatPrice = (price: number) => {
+    if (price >= 10000000) {
+      return `₹${(price / 10000000).toFixed(1)}Cr`;
+    } else if (price >= 100000) {
+      return `₹${(price / 100000).toFixed(1)}L`;
+    } else {
+      return `₹${price.toLocaleString()}`;
+    }
   };
 
-  const getPlayerRole = (playerId: string) => {
-    const player = players.find(p => p.id === playerId);
-    return player?.role || "Unknown";
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true 
+    });
   };
 
-  const getTeamName = (teamId: string) => {
-    const team = teams.find(t => t.id === teamId);
-    return team?.name || "Unknown Team";
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric',
+      year: 'numeric'
+    });
   };
 
-  const getTeamColor = (teamId: string) => {
-    const team = teams.find(t => t.id === teamId);
-    return team?.colorTheme || "#3B82F6";
+  const getRoleBadge = (role: string) => {
+    const colors = {
+      "Batsman": "bg-blue-500/20 text-blue-300 border-blue-500/30",
+      "Bowler": "bg-purple-500/20 text-purple-300 border-purple-500/30", 
+      "All-rounder": "bg-orange-500/20 text-orange-300 border-orange-500/30",
+      "Wicket-keeper": "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
+    };
+    return <Badge className={colors[role as keyof typeof colors] || "bg-gray-500/20 text-gray-300"}>{role}</Badge>;
   };
 
-  // Export auction log
-  const exportLog = () => {
-    const csvContent = [
-      'Timestamp,Player Name,Role,Team,Sold Price (₹L)',
-      ...logs.map(log => {
-        const player = players.find(p => p.id === log.playerId);
-        const team = teams.find(t => t.id === log.teamId);
-        const timestamp = log.timestamp ? new Date(log.timestamp).toLocaleString() : 'Unknown';
-        return `${timestamp},${player?.name || 'Unknown'},${player?.role || 'Unknown'},${team?.name || 'Unknown'},${log.soldPrice}`;
-      })
-    ].join('\n');
+  const getPriceChange = (finalPrice: number, basePrice: number) => {
+    const change = finalPrice - basePrice;
+    const percentage = ((change / basePrice) * 100).toFixed(1);
+    if (change > 0) {
+      return (
+        <Badge className="bg-green-500/20 text-green-300 border-green-500/30">
+          +{formatPrice(change)} (+{percentage}%)
+        </Badge>
+      );
+    } else if (change === 0) {
+      return (
+        <Badge className="bg-slate-500/20 text-slate-300 border-slate-500/30">
+          Base Price
+        </Badge>
+      );
+    } else {
+      return (
+        <Badge className="bg-red-500/20 text-red-300 border-red-500/30">
+          {formatPrice(change)} ({percentage}%)
+        </Badge>
+      );
+    }
+  };
 
+  const filteredAndSortedEntries = auctionEntries
+    .filter(entry => {
+      const matchesSearch = entry.playerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           entry.assignedTeam.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesTeam = selectedTeam === "all" || entry.assignedTeam === selectedTeam;
+      const matchesRole = selectedRole === "all" || entry.role === selectedRole;
+      
+      return matchesSearch && matchesTeam && matchesRole;
+    })
+    .sort((a, b) => {
+      let aValue, bValue;
+      
+      switch (sortField) {
+        case "finalPrice":
+          aValue = a.finalPrice;
+          bValue = b.finalPrice;
+          break;
+        case "playerName":
+          aValue = a.playerName.toLowerCase();
+          bValue = b.playerName.toLowerCase();
+          break;
+        default:
+          aValue = a.timestamp.getTime();
+          bValue = b.timestamp.getTime();
+      }
+      
+      if (sortOrder === "asc") {
+        return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
+      } else {
+        return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
+      }
+    });
+
+  const handleSort = (field: "timestamp" | "finalPrice" | "playerName") => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortOrder("desc");
+    }
+  };
+
+  const exportToCSV = () => {
+    const headers = [
+      'Sr No', 'Player Name', 'Assigned Team', 'Final Price', 'Role', 
+      'Base Price', 'Price Change', 'Evaluation Points', 'Country', 
+      'Bid Duration', 'Date', 'Time'
+    ];
+    
+    const csvData = filteredAndSortedEntries.map(entry => [
+      entry.srNo,
+      entry.playerName,
+      entry.assignedTeam,
+      entry.finalPrice,
+      entry.role,
+      entry.basePrice,
+      entry.finalPrice - entry.basePrice,
+      entry.evaluationPoints,
+      entry.country,
+      entry.bidDuration,
+      formatDate(entry.timestamp),
+      formatTime(entry.timestamp)
+    ]);
+    
+    const csvContent = [headers.join(','), ...csvData.map(row => row.join(','))].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'auction-log.csv';
+    a.download = `auction_log_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
+
+    toast({
+      title: "Export Complete",
+      description: "Auction log has been exported to CSV",
+    });
   };
 
-  // Calculate statistics
-  const totalPlayers = logs.length;
-  const totalRevenue = logs.reduce((sum, log) => sum + log.soldPrice, 0);
-  const averagePrice = totalPlayers > 0 ? Math.round(totalRevenue / totalPlayers) : 0;
-  const highestSale = logs.length > 0 ? Math.max(...logs.map(log => log.soldPrice)) : 0;
+  const totalSpent = auctionEntries.reduce((sum, entry) => sum + entry.finalPrice, 0);
+  const totalPlayers = auctionEntries.length;
+  const averagePrice = totalPlayers > 0 ? totalSpent / totalPlayers : 0;
+  const highestBid = Math.max(...auctionEntries.map(entry => entry.finalPrice));
 
-  if (isLoading) {
-    return <div className="animate-pulse">Loading auction log...</div>;
-  }
+  const SortButton = ({ field, children }: { field: "timestamp" | "finalPrice" | "playerName"; children: React.ReactNode }) => (
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={() => handleSort(field)}
+      className="text-slate-300 hover:text-slate-100 p-0 h-auto"
+    >
+      <div className="flex items-center gap-1">
+        {children}
+        {sortField === field && (
+          sortOrder === "asc" ? <SortAsc className="h-3 w-3" /> : <SortDesc className="h-3 w-3" />
+        )}
+      </div>
+    </Button>
+  );
 
   return (
-    <div className="space-y-6">
-      {/* Statistics Cards */}
+    <div className="min-h-screen cricket-gradient p-6 space-y-8">
+      {/* Header */}
+      <div className="text-center space-y-2">
+        <h1 className="text-4xl font-bold text-slate-100">Auction Log</h1>
+        <p className="text-slate-400 text-lg">
+          Complete record of all player auctions with search and export
+        </p>
+      </div>
+
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
+        <Card className="cricket-card">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Total Sales</p>
-                <p className="text-2xl font-bold">{totalPlayers}</p>
+                <p className="text-sm text-slate-400">Total Players</p>
+                <p className="text-2xl font-bold text-slate-100">{totalPlayers}</p>
               </div>
-              <User className="h-8 w-8 text-blue-500" />
+              <Users className="h-8 w-8 text-blue-400" />
             </div>
           </CardContent>
         </Card>
-
-        <Card>
+        
+        <Card className="cricket-card">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Total Revenue</p>
-                <p className="text-2xl font-bold">₹{totalRevenue}L</p>
+                <p className="text-sm text-slate-400">Total Spent</p>
+                <p className="text-2xl font-bold text-green-300">{formatPrice(totalSpent)}</p>
               </div>
-              <DollarSign className="h-8 w-8 text-green-500" />
+              <DollarSign className="h-8 w-8 text-green-400" />
             </div>
           </CardContent>
         </Card>
-
-        <Card>
+        
+        <Card className="cricket-card">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Average Price</p>
-                <p className="text-2xl font-bold">₹{averagePrice}L</p>
+                <p className="text-sm text-slate-400">Average Price</p>
+                <p className="text-2xl font-bold text-purple-300">{formatPrice(averagePrice)}</p>
               </div>
-              <DollarSign className="h-8 w-8 text-orange-500" />
+              <Trophy className="h-8 w-8 text-purple-400" />
             </div>
           </CardContent>
         </Card>
-
-        <Card>
+        
+        <Card className="cricket-card">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Highest Sale</p>
-                <p className="text-2xl font-bold">₹{highestSale}L</p>
+                <p className="text-sm text-slate-400">Highest Bid</p>
+                <p className="text-2xl font-bold text-amber-300">{formatPrice(highestBid)}</p>
               </div>
-              <DollarSign className="h-8 w-8 text-purple-500" />
+              <Trophy className="h-8 w-8 text-amber-400" />
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Auction Log */}
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <div>
-              <CardTitle>Auction History ({logs.length} sales)</CardTitle>
-              <CardDescription>
-                Complete log of all player sales with timestamps and prices.
-              </CardDescription>
+      {/* Search and Filters */}
+      <Card className="cricket-card">
+        <CardContent className="p-6">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input
+                  placeholder="Search players or teams..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="cricket-input pl-10 w-64"
+                />
+              </div>
+              
+              <Select value={selectedTeam} onValueChange={setSelectedTeam}>
+                <SelectTrigger className="cricket-input w-48">
+                  <SelectValue placeholder="Filter by team" />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-800 border-slate-600">
+                  <SelectItem value="all">All Teams</SelectItem>
+                  {teams.map(team => (
+                    <SelectItem key={team} value={team}>{team}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              <Select value={selectedRole} onValueChange={setSelectedRole}>
+                <SelectTrigger className="cricket-input w-48">
+                  <SelectValue placeholder="Filter by role" />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-800 border-slate-600">
+                  <SelectItem value="all">All Roles</SelectItem>
+                  {roles.map(role => (
+                    <SelectItem key={role} value={role}>{role}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <Button onClick={exportLog} variant="outline" size="sm">
-              <FileDown className="h-4 w-4 mr-2" />
-              Export CSV
-            </Button>
+            
+            <div className="flex gap-2">
+              <Button
+                onClick={exportToCSV}
+                className="cricket-button-primary"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Export CSV
+              </Button>
+            </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Auction Log Table */}
+      <Card className="cricket-card">
+        <CardHeader>
+          <CardTitle className="text-slate-100 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-emerald-400" />
+              Auction Entries ({filteredAndSortedEntries.length})
+            </div>
+            <Badge className="bg-slate-700/50 text-slate-300">
+              Showing {filteredAndSortedEntries.length} of {totalPlayers}
+            </Badge>
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          {logs.length > 0 ? (
-            <div className="space-y-3">
-              {/* Recent sales first */}
-              {logs
-                .sort((a, b) => {
-                  const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
-                  const timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
-                  return timeB - timeA;
-                })
-                .map((log, index) => (
-                  <div key={log.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
-                    <div className="flex items-center gap-4">
-                      {/* Sale number */}
-                      <div className="flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-800 rounded-full text-sm font-bold">
-                        {logs.length - index}
-                      </div>
-
-                      {/* Player info */}
-                      <div>
-                        <div className="font-semibold">{getPlayerName(log.playerId)}</div>
-                        <div className="text-sm text-gray-600">
-                          <Badge variant="outline" className="mr-2">
-                            {getPlayerRole(log.playerId)}
-                          </Badge>
-                          <span className="flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {log.timestamp ? new Date(log.timestamp).toLocaleString() : 'Unknown time'}
-                          </span>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-slate-600">
+                  <TableHead className="text-slate-300">Sr No</TableHead>
+                  <TableHead className="text-slate-300">
+                    <SortButton field="playerName">Player Name</SortButton>
+                  </TableHead>
+                  <TableHead className="text-slate-300">Team</TableHead>
+                  <TableHead className="text-slate-300">
+                    <SortButton field="finalPrice">Final Price</SortButton>
+                  </TableHead>
+                  <TableHead className="text-slate-300">Role</TableHead>
+                  <TableHead className="text-slate-300">Price Change</TableHead>
+                  <TableHead className="text-slate-300">Country</TableHead>
+                  <TableHead className="text-slate-300">Duration</TableHead>
+                  <TableHead className="text-slate-300">
+                    <SortButton field="timestamp">Timestamp</SortButton>
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredAndSortedEntries.map((entry) => (
+                  <TableRow key={entry.id} className="border-slate-600 hover:bg-slate-700/30">
+                    <TableCell className="text-slate-300 font-mono">{entry.srNo}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-blue-600 rounded-lg flex items-center justify-center text-xs">
+                          🏏
+                        </div>
+                        <div>
+                          <p className="font-medium text-slate-100">{entry.playerName}</p>
+                          <p className="text-xs text-slate-400">{entry.evaluationPoints} points</p>
                         </div>
                       </div>
-                    </div>
-
-                    <div className="text-right">
-                      {/* Team info */}
-                      <div className="flex items-center gap-2 mb-1">
-                        <div 
-                          className="w-3 h-3 rounded-full" 
-                          style={{ backgroundColor: getTeamColor(log.teamId) }}
-                        />
-                        <span className="font-medium">{getTeamName(log.teamId)}</span>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-slate-200">
+                        {entry.assignedTeam}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="font-semibold text-slate-100">{formatPrice(entry.finalPrice)}</p>
+                        <p className="text-xs text-slate-400">Base: {formatPrice(entry.basePrice)}</p>
                       </div>
-                      
-                      {/* Price */}
-                      <div className="text-lg font-bold text-green-600">
-                        ₹{log.soldPrice}L
+                    </TableCell>
+                    <TableCell>
+                      {getRoleBadge(entry.role)}
+                    </TableCell>
+                    <TableCell>
+                      {getPriceChange(entry.finalPrice, entry.basePrice)}
+                    </TableCell>
+                    <TableCell className="text-slate-300">{entry.country}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1 text-slate-300">
+                        <Clock className="h-3 w-3" />
+                        {entry.bidDuration}s
                       </div>
-                    </div>
-                  </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-slate-300">
+                        <p className="text-sm">{formatDate(entry.timestamp)}</p>
+                        <p className="text-xs text-slate-400">{formatTime(entry.timestamp)}</p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
                 ))}
-            </div>
-          ) : (
+              </TableBody>
+            </Table>
+          </div>
+          
+          {filteredAndSortedEntries.length === 0 && (
             <div className="text-center py-12">
-              <Clock className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No sales yet</h3>
-              <p className="text-gray-600">Player sales will appear here as the auction progresses.</p>
+              <FileText className="h-12 w-12 text-slate-500 mx-auto mb-4" />
+              <p className="text-slate-400 text-lg mb-2">No auction entries found</p>
+              <p className="text-slate-500">Try adjusting your search or filter criteria</p>
             </div>
           )}
         </CardContent>
       </Card>
-
-      {/* Recent Activity (Last 5 sales) */}
-      {logs.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-            <CardDescription>
-              Latest 5 player sales in chronological order.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {logs
-                .sort((a, b) => {
-                  const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
-                  const timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
-                  return timeB - timeA;
-                })
-                .slice(0, 5)
-                .map((log) => (
-                  <div key={log.id} className="flex items-center justify-between p-2 border-l-4 border-blue-500 bg-blue-50 rounded">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{getPlayerName(log.playerId)}</span>
-                      <span className="text-sm text-gray-600">sold to</span>
-                      <span className="font-medium" style={{ color: getTeamColor(log.teamId) }}>
-                        {getTeamName(log.teamId)}
-                      </span>
-                    </div>
-                    <div className="font-bold text-green-600">₹{log.soldPrice}L</div>
-                  </div>
-                ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }

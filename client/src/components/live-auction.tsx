@@ -1,426 +1,494 @@
-import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { 
+  Play, 
+  Pause, 
+  SkipForward, 
+  Gavel, 
+  Timer,
+  Users,
+  DollarSign,
+  Target,
+  Activity,
+  Crown,
+  Zap,
+  CheckCircle,
+  XCircle
+} from "lucide-react";
+
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
-import { Play, Pause, Hammer, Info, DollarSign, User, Globe } from "lucide-react";
-import type { Player, Team, Auction, InsertAuction, InsertAuctionLog } from "@shared/schema";
+
+// Player interface
+interface Player {
+  id: string;
+  name: string;
+  age: number;
+  country: string;
+  role: "Batsman" | "Bowler" | "All-rounder" | "Wicket-keeper";
+  evaluationPoints: number;
+  basePrice: number;
+  matches: number;
+  runs: number;
+  wickets: number;
+  catches: number;
+  pool: string;
+  photo?: string;
+}
+
+// Team interface
+interface Team {
+  id: string;
+  name: string;
+  remainingBudget: number;
+  players: Player[];
+  logo?: string;
+}
 
 export default function LiveAuction() {
-  const [currentAuction, setCurrentAuction] = useState<Auction | null>(null);
-  const [currentBid, setCurrentBid] = useState<number>(0);
-  const [selectedTeam, setSelectedTeam] = useState<string>("");
-  const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
-  const [showPlayerModal, setShowPlayerModal] = useState(false);
-  const [bidIncrement, setBidIncrement] = useState<number>(5);
   const { toast } = useToast();
-  const queryClient = useQueryClient();
+  const [isAuctionActive, setIsAuctionActive] = useState(false);
+  const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
+  const [finalPrice, setFinalPrice] = useState<number>(0);
+  const [selectedTeam, setSelectedTeam] = useState<string>("");
+  const [auctionTimer, setAuctionTimer] = useState(30);
 
-  // Fetch data
-  const { data: players = [] } = useQuery<Player[]>({
-    queryKey: ["/api/players"],
-  });
-
-  const { data: teams = [] } = useQuery<Team[]>({
-    queryKey: ["/api/teams"],
-  });
-
-  const { data: activeAuctions = [] } = useQuery<Auction[]>({
-    queryKey: ["/api/auctions/active"],
-    refetchInterval: 2000, // Refresh every 2 seconds for live updates
-  });
-
-  // Auction mutations
-  const startAuctionMutation = useMutation({
-    mutationFn: (auction: InsertAuction) => apiRequest("POST", "/api/auctions", auction),
-    onSuccess: async (response) => {
-      const auction = await response.json();
-      setCurrentAuction(auction);
-      queryClient.invalidateQueries({ queryKey: ["/api/auctions"] });
-      toast({ title: "Auction started!" });
+  // Sample data - in real app this would come from Firebase
+  const [availablePlayers] = useState<Player[]>([
+    {
+      id: "p1",
+      name: "Virat Kohli",
+      age: 35,
+      country: "India",
+      role: "Batsman",
+      evaluationPoints: 95,
+      basePrice: 160000000,
+      matches: 115,
+      runs: 4008,
+      wickets: 4,
+      catches: 95,
+      pool: "Pool A",
     },
-  });
-
-  const updateAuctionMutation = useMutation({
-    mutationFn: ({ auctionId, updates }: { auctionId: string; updates: Partial<Auction> }) =>
-      apiRequest("PUT", `/api/auctions/${auctionId}`, updates),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/auctions"] });
+    {
+      id: "p2",
+      name: "Jasprit Bumrah",
+      age: 30,
+      country: "India",
+      role: "Bowler",
+      evaluationPoints: 92,
+      basePrice: 120000000,
+      matches: 70,
+      runs: 0,
+      wickets: 165,
+      catches: 25,
+      pool: "Pool A",
     },
-  });
+    {
+      id: "p3",
+      name: "Jos Buttler",
+      age: 34,
+      country: "England",
+      role: "Wicket-keeper",
+      evaluationPoints: 89,
+      basePrice: 100000000,
+      matches: 103,
+      runs: 2988,
+      wickets: 0,
+      catches: 85,
+      pool: "Pool B",
+    }
+  ]);
 
-  const updatePlayerMutation = useMutation({
-    mutationFn: ({ playerId, updates }: { playerId: string; updates: Partial<Player> }) =>
-      apiRequest("PUT", `/api/players/${playerId}`, updates),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/players"] });
+  const [teams] = useState<Team[]>([
+    {
+      id: "team-1",
+      name: "Mumbai Warriors",
+      remainingBudget: 180000000,
+      players: [],
+      logo: "🏏"
     },
-  });
-
-  const createAuctionLogMutation = useMutation({
-    mutationFn: (log: InsertAuctionLog) => apiRequest("POST", "/api/auction-logs", log),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/auction-logs"] });
+    {
+      id: "team-2",
+      name: "Chennai Kings",
+      remainingBudget: 200000000,
+      players: [],
+      logo: "👑"
     },
-  });
+    {
+      id: "team-3",
+      name: "Delhi Capitals",
+      remainingBudget: 250000000,
+      players: [],
+      logo: "⚡"
+    }
+  ]);
 
-  // Get available players for auction
-  const availablePlayers = players.filter(p => p.status === "Available");
-  
-  // Get current auction player
-  const currentPlayer = currentAuction ? players.find(p => p.id === currentAuction.playerId) : null;
+  const currentPlayer = availablePlayers[currentPlayerIndex];
 
-  // Auto-budget checker
-  const checkBudget = (teamId: string, bidAmount: number): boolean => {
-    const team = teams.find(t => t.id === teamId);
-    if (!team) return false;
-    return team.remainingBudget >= bidAmount;
+  const formatPrice = (price: number) => {
+    if (price >= 10000000) {
+      return `₹${(price / 10000000).toFixed(1)}Cr`;
+    } else if (price >= 100000) {
+      return `₹${(price / 100000).toFixed(1)}L`;
+    } else {
+      return `₹${price.toLocaleString()}`;
+    }
   };
 
-  // Start auction for a player
-  const startPlayerAuction = (player: Player) => {
-    const auction: InsertAuction = {
-      playerId: player.id,
-      currentBid: player.basePrice,
-      winningTeam: null,
+  const getRoleBadge = (role: string) => {
+    const colors = {
+      "Batsman": "bg-blue-500/20 text-blue-300 border-blue-500/30",
+      "Bowler": "bg-purple-500/20 text-purple-300 border-purple-500/30", 
+      "All-rounder": "bg-orange-500/20 text-orange-300 border-orange-500/30",
+      "Wicket-keeper": "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
     };
-
-    setCurrentBid(player.basePrice);
-    startAuctionMutation.mutate(auction);
+    return <Badge className={colors[role as keyof typeof colors] || "bg-gray-500/20 text-gray-300"}>{role}</Badge>;
   };
 
-  // Place bid
-  const placeBid = () => {
-    if (!currentAuction || !selectedTeam) return;
-
-    const newBidAmount = currentBid + bidIncrement;
+  const handleStartAuction = () => {
+    setIsAuctionActive(true);
+    setFinalPrice(currentPlayer?.basePrice || 0);
+    setAuctionTimer(30);
     
-    // Check budget
-    if (!checkBudget(selectedTeam, newBidAmount)) {
-      toast({ 
-        title: "Budget exceeded!", 
-        description: "This team doesn't have enough budget for this bid.",
-        variant: "destructive" 
+    toast({
+      title: "Auction Started",
+      description: `Auction for ${currentPlayer?.name} has begun`,
+    });
+  };
+
+  const handlePauseAuction = () => {
+    setIsAuctionActive(false);
+    
+    toast({
+      title: "Auction Paused",
+      description: "Auction has been paused",
+    });
+  };
+
+  const handleAssignPlayer = () => {
+    if (!selectedTeam || !currentPlayer) {
+      toast({
+        title: "Selection Required",
+        description: "Please select a team and enter final price",
+        variant: "destructive",
       });
       return;
     }
 
-    setCurrentBid(newBidAmount);
-    updateAuctionMutation.mutate({
-      auctionId: currentAuction.id,
-      updates: {
-        currentBid: newBidAmount,
-        winningTeam: selectedTeam,
-      }
-    });
+    const team = teams.find(t => t.id === selectedTeam);
+    if (!team) return;
 
-    toast({ title: `Bid placed: ₹${newBidAmount}L` });
-  };
+    if (finalPrice > team.remainingBudget) {
+      toast({
+        title: "Budget Exceeded",
+        description: `${team.name} doesn't have enough budget`,
+        variant: "destructive",
+      });
+      return;
+    }
 
-  // Finalize auction (sold)
-  const finalizeAuction = () => {
-    if (!currentAuction || !currentPlayer || !selectedTeam) return;
-
-    // Update auction as completed
-    updateAuctionMutation.mutate({
-      auctionId: currentAuction.id,
-      updates: {
-        isActive: false,
-        isCompleted: true,
-        finalPrice: currentBid,
-        completedAt: new Date(),
-      }
-    });
-
-    // Update player as sold
-    updatePlayerMutation.mutate({
-      playerId: currentPlayer.id,
-      updates: {
-        status: "Sold",
-        soldPrice: currentBid,
-        assignedTeam: selectedTeam,
-      }
-    });
-
-    // Create auction log
-    createAuctionLogMutation.mutate({
-      playerId: currentPlayer.id,
-      teamId: selectedTeam,
-      soldPrice: currentBid,
-    });
-
-    // Reset state
-    setCurrentAuction(null);
-    setCurrentBid(0);
+    // Assign player logic would go here
+    setIsAuctionActive(false);
+    setCurrentPlayerIndex(prev => prev + 1);
     setSelectedTeam("");
-
-    toast({ title: `${currentPlayer.name} sold to team for ₹${currentBid}L!` });
+    setFinalPrice(0);
+    
+    toast({
+      title: "Player Assigned",
+      description: `${currentPlayer.name} assigned to ${team.name} for ${formatPrice(finalPrice)}`,
+    });
   };
 
-  // Mark player as unsold
-  const markUnsold = () => {
-    if (!currentAuction || !currentPlayer) return;
-
-    // Update auction as completed
-    updateAuctionMutation.mutate({
-      auctionId: currentAuction.id,
-      updates: {
-        isActive: false,
-        isCompleted: true,
-        completedAt: new Date(),
-      }
-    });
-
-    // Update player as unsold
-    updatePlayerMutation.mutate({
-      playerId: currentPlayer.id,
-      updates: {
-        status: "Unsold",
-      }
-    });
-
-    // Reset state
-    setCurrentAuction(null);
-    setCurrentBid(0);
+  const handleSkipPlayer = () => {
+    setIsAuctionActive(false);
+    setCurrentPlayerIndex(prev => prev + 1);
     setSelectedTeam("");
-
-    toast({ title: `${currentPlayer.name} marked as unsold` });
+    setFinalPrice(0);
+    
+    toast({
+      title: "Player Skipped",
+      description: `${currentPlayer?.name} has been marked as unsold`,
+    });
   };
 
-  // Show player details
-  const showPlayerDetails = (player: Player) => {
-    setSelectedPlayer(player);
-    setShowPlayerModal(true);
+  const canAfford = (teamId: string, price: number) => {
+    const team = teams.find(t => t.id === teamId);
+    return team ? team.remainingBudget >= price : false;
   };
+
+  if (!currentPlayer) {
+    return (
+      <div className="min-h-screen cricket-gradient p-6 flex items-center justify-center">
+        <Card className="cricket-card text-center p-8">
+          <CheckCircle className="h-16 w-16 text-green-400 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-slate-100 mb-2">Auction Complete!</h2>
+          <p className="text-slate-400">All players have been processed</p>
+        </Card>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      {/* Current Auction Status */}
-      {currentAuction && currentPlayer ? (
-        <Card className="border-2 border-blue-500">
+    <div className="min-h-screen cricket-gradient p-6 space-y-8">
+      {/* Header */}
+      <div className="text-center space-y-2">
+        <div className="flex items-center justify-center gap-2 mb-4">
+          {isAuctionActive ? (
+            <Badge className="bg-green-500/20 text-green-300 border-green-500/30 flex items-center gap-2">
+              <Activity className="h-4 w-4 animate-pulse" />
+              LIVE AUCTION
+            </Badge>
+          ) : (
+            <Badge className="bg-slate-500/20 text-slate-300 border-slate-500/30">
+              AUCTION PAUSED
+            </Badge>
+          )}
+        </div>
+        <h1 className="text-4xl font-bold text-slate-100">Live Auction</h1>
+        <p className="text-slate-400 text-lg">
+          Real-time player auction with budget tracking
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-6">
+        {/* Current Player Card */}
+        <Card className="cricket-card">
           <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-                LIVE AUCTION
-              </span>
-              <Badge variant="destructive">Active</Badge>
+            <CardTitle className="text-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Crown className="h-5 w-5 text-amber-400" />
+                Current Player ({currentPlayerIndex + 1}/{availablePlayers.length})
+              </div>
+              {isAuctionActive && (
+                <div className="flex items-center gap-2">
+                  <Timer className="h-4 w-4 text-red-400" />
+                  <span className="text-red-400 font-mono">{auctionTimer}s</span>
+                </div>
+              )}
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Player Info */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <h3 className="text-2xl font-bold">{currentPlayer.name}</h3>
-                <div className="flex gap-2">
-                  <Badge>{currentPlayer.role}</Badge>
-                  <Badge variant="outline">{currentPlayer.country}</Badge>
-                </div>
-                <p className="text-sm text-gray-600">Base Price: ₹{currentPlayer.basePrice}L</p>
-                <Button variant="outline" size="sm" onClick={() => showPlayerDetails(currentPlayer)}>
-                  <Info className="h-4 w-4 mr-2" />
-                  Player Details
-                </Button>
-              </div>
-
-              {/* Current Bid */}
-              <div className="text-center space-y-4">
-                <div>
-                  <div className="text-3xl font-bold text-green-600">₹{currentBid}L</div>
-                  <div className="text-sm text-gray-600">Current Bid</div>
+          <CardContent>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Player Info */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-blue-600 rounded-xl flex items-center justify-center text-2xl">
+                    🏏
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-slate-100">{currentPlayer.name}</h3>
+                    <div className="flex items-center gap-3 mt-1">
+                      {getRoleBadge(currentPlayer.role)}
+                      <Badge variant="outline" className="text-slate-300">
+                        {currentPlayer.country}
+                      </Badge>
+                      <Badge variant="outline" className="text-slate-300">
+                        {currentPlayer.pool}
+                      </Badge>
+                    </div>
+                  </div>
                 </div>
                 
-                {selectedTeam && (
-                  <div>
-                    <div className="text-lg font-medium">
-                      {teams.find(t => t.id === selectedTeam)?.name}
-                    </div>
-                    <div className="text-sm text-gray-600">Leading Bidder</div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="text-center p-3 bg-slate-700/30 rounded-lg">
+                    <p className="text-sm text-slate-400">Age</p>
+                    <p className="text-xl font-bold text-slate-100">{currentPlayer.age}</p>
                   </div>
-                )}
+                  <div className="text-center p-3 bg-slate-700/30 rounded-lg">
+                    <p className="text-sm text-slate-400">Evaluation</p>
+                    <p className="text-xl font-bold text-amber-300">{currentPlayer.evaluationPoints}</p>
+                  </div>
+                </div>
+                
+                <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-lg">
+                  <p className="text-sm text-emerald-400 mb-1">Base Price</p>
+                  <p className="text-3xl font-bold text-emerald-300">{formatPrice(currentPlayer.basePrice)}</p>
+                </div>
+              </div>
+              
+              {/* Player Stats */}
+              <div className="space-y-4">
+                <h4 className="font-semibold text-slate-200">Performance Stats</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="text-center p-3 bg-slate-700/30 rounded-lg">
+                    <p className="text-sm text-slate-400">Matches</p>
+                    <p className="text-lg font-bold text-slate-100">{currentPlayer.matches}</p>
+                  </div>
+                  <div className="text-center p-3 bg-slate-700/30 rounded-lg">
+                    <p className="text-sm text-slate-400">Runs</p>
+                    <p className="text-lg font-bold text-blue-300">{currentPlayer.runs}</p>
+                  </div>
+                  <div className="text-center p-3 bg-slate-700/30 rounded-lg">
+                    <p className="text-sm text-slate-400">Wickets</p>
+                    <p className="text-lg font-bold text-purple-300">{currentPlayer.wickets}</p>
+                  </div>
+                  <div className="text-center p-3 bg-slate-700/30 rounded-lg">
+                    <p className="text-sm text-slate-400">Catches</p>
+                    <p className="text-lg font-bold text-green-300">{currentPlayer.catches}</p>
+                  </div>
+                </div>
               </div>
             </div>
+          </CardContent>
+        </Card>
 
-            {/* Bidding Controls */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
-              <div>
-                <Label htmlFor="team">Select Team</Label>
+        {/* Bid Assignment Form */}
+        <Card className="cricket-card">
+          <CardHeader>
+            <CardTitle className="text-slate-100 flex items-center gap-2">
+              <Gavel className="h-5 w-5 text-purple-400" />
+              Bid Assignment
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="space-y-2">
+                <Label className="text-slate-200">Final Price (₹)</Label>
+                <Input
+                  type="number"
+                  value={finalPrice}
+                  onChange={(e) => setFinalPrice(parseInt(e.target.value) || 0)}
+                  placeholder="Enter final bid amount"
+                  className="cricket-input"
+                  min={currentPlayer.basePrice}
+                />
+                <p className="text-xs text-slate-400">
+                  Minimum: {formatPrice(currentPlayer.basePrice)}
+                </p>
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-slate-200">Assign to Team</Label>
                 <Select value={selectedTeam} onValueChange={setSelectedTeam}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose team" />
+                  <SelectTrigger className="cricket-input">
+                    <SelectValue placeholder="Select team" />
                   </SelectTrigger>
-                  <SelectContent>
-                    {teams.map((team) => (
-                      <SelectItem key={team.id} value={team.id}>
-                        {team.name} (₹{team.remainingBudget}L left)
+                  <SelectContent className="bg-slate-800 border-slate-600">
+                    {teams.map(team => (
+                      <SelectItem 
+                        key={team.id} 
+                        value={team.id}
+                        disabled={!canAfford(team.id, finalPrice)}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span>{team.logo}</span>
+                          <span>{team.name}</span>
+                          <span className="text-slate-400">
+                            ({formatPrice(team.remainingBudget)})
+                          </span>
+                          {!canAfford(team.id, finalPrice) && (
+                            <Badge className="bg-red-500/20 text-red-300 border-red-500/30 text-xs">
+                              Insufficient Budget
+                            </Badge>
+                          )}
+                        </div>
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-
-              <div>
-                <Label htmlFor="increment">Bid Increment (₹L)</Label>
-                <Select value={bidIncrement.toString()} onValueChange={(value) => setBidIncrement(parseInt(value))}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="5">₹5L</SelectItem>
-                    <SelectItem value="10">₹10L</SelectItem>
-                    <SelectItem value="25">₹25L</SelectItem>
-                    <SelectItem value="50">₹50L</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex items-end gap-2">
-                <Button onClick={placeBid} disabled={!selectedTeam} className="flex-1">
-                  <Hammer className="h-4 w-4 mr-2" />
-                  Bid ₹{currentBid + bidIncrement}L
+              
+              <div className="flex flex-col justify-end gap-2">
+                <Button
+                  onClick={handleAssignPlayer}
+                  disabled={!selectedTeam || finalPrice < currentPlayer.basePrice}
+                  className="cricket-button-primary"
+                >
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Assign Player
+                </Button>
+                <Button
+                  onClick={handleSkipPlayer}
+                  variant="outline"
+                  className="cricket-button-secondary"
+                >
+                  <XCircle className="h-4 w-4 mr-2" />
+                  Mark Unsold
                 </Button>
               </div>
             </div>
-
-            {/* Auction Actions */}
-            <div className="flex gap-2 pt-4 border-t">
-              <Button onClick={finalizeAuction} disabled={!selectedTeam} variant="default">
-                Sold!
-              </Button>
-              <Button onClick={markUnsold} variant="destructive">
-                Unsold
-              </Button>
-            </div>
           </CardContent>
         </Card>
-      ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle>No Active Auction</CardTitle>
-            <CardDescription>
-              Select a player from the available list to start an auction.
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      )}
 
-      {/* Available Players */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Available Players ({availablePlayers.length})</CardTitle>
-          <CardDescription>
-            Players ready for auction. Click "Start Auction" to begin bidding.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {availablePlayers.slice(0, 12).map((player) => (
-              <Card key={player.id} className="hover:shadow-md transition-shadow">
-                <CardContent className="p-4">
-                  <div className="space-y-2">
-                    <h4 className="font-semibold">{player.name}</h4>
-                    <div className="flex gap-2">
-                      <Badge variant="outline">{player.role}</Badge>
-                      <Badge variant="secondary">{player.country}</Badge>
-                    </div>
-                    <div className="text-sm text-gray-600">
-                      Base Price: ₹{player.basePrice}L
-                    </div>
-                    {player.pool && (
-                      <div className="text-sm text-blue-600">
-                        Pool: {player.pool}
-                      </div>
-                    )}
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        onClick={() => startPlayerAuction(player)}
-                        disabled={!!currentAuction}
-                        className="flex-1"
-                      >
-                        <Play className="h-3 w-3 mr-1" />
-                        Start Auction
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => showPlayerDetails(player)}
-                      >
-                        <Info className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Player Detail Modal */}
-      <Dialog open={showPlayerModal} onOpenChange={setShowPlayerModal}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Player Profile</DialogTitle>
-          </DialogHeader>
-          {selectedPlayer && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h3 className="text-2xl font-bold">{selectedPlayer.name}</h3>
-                  <div className="flex gap-2 mt-2">
-                    <Badge>{selectedPlayer.role}</Badge>
-                    <Badge variant="outline">{selectedPlayer.country}</Badge>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-2xl font-bold text-green-600">₹{selectedPlayer.basePrice}L</div>
-                  <div className="text-sm text-gray-600">Base Price</div>
-                </div>
-              </div>
-
-              {selectedPlayer.bio && (
-                <div>
-                  <h4 className="font-semibold mb-2">Biography</h4>
-                  <p className="text-gray-700">{selectedPlayer.bio}</p>
-                </div>
-              )}
-
-              {selectedPlayer.performanceStats && (
-                <div>
-                  <h4 className="font-semibold mb-2">Performance Statistics</h4>
-                  <div className="bg-gray-50 p-3 rounded">
-                    <pre className="text-sm">{JSON.stringify(JSON.parse(selectedPlayer.performanceStats), null, 2)}</pre>
-                  </div>
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-4 pt-4 border-t">
-                <div>
-                  <div className="text-sm text-gray-600">Pool Assignment</div>
-                  <div className="font-medium">{selectedPlayer.pool || "Unassigned"}</div>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-600">Status</div>
-                  <Badge className={
-                    selectedPlayer.status === "Available" ? "bg-green-100 text-green-800" :
-                    selectedPlayer.status === "Sold" ? "bg-blue-100 text-blue-800" :
-                    "bg-red-100 text-red-800"
-                  }>
-                    {selectedPlayer.status}
-                  </Badge>
-                </div>
-              </div>
-            </div>
+        {/* Auction Controls */}
+        <div className="flex justify-center gap-4">
+          {!isAuctionActive ? (
+            <Button
+              onClick={handleStartAuction}
+              size="lg"
+              className="cricket-button-primary text-lg px-8"
+            >
+              <Play className="h-5 w-5 mr-2" />
+              Start Auction
+            </Button>
+          ) : (
+            <Button
+              onClick={handlePauseAuction}
+              size="lg"
+              variant="outline"
+              className="cricket-button-secondary text-lg px-8"
+            >
+              <Pause className="h-5 w-5 mr-2" />
+              Pause Auction
+            </Button>
           )}
-        </DialogContent>
-      </Dialog>
+          
+          <Button
+            onClick={handleSkipPlayer}
+            size="lg"
+            variant="outline"
+            className="cricket-button-secondary text-lg px-6"
+          >
+            <SkipForward className="h-5 w-5 mr-2" />
+            Skip Player
+          </Button>
+        </div>
+
+        {/* Live Budget & Team Info */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {teams.map((team) => (
+            <Card key={team.id} className={`cricket-card ${selectedTeam === team.id ? 'ring-2 ring-emerald-500' : ''}`}>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">{team.logo}</span>
+                    <span className="font-medium text-slate-100">{team.name}</span>
+                  </div>
+                  {selectedTeam === team.id && (
+                    <Badge className="bg-emerald-500/20 text-emerald-300">
+                      Selected
+                    </Badge>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-400">Budget:</span>
+                    <span className="text-slate-200">{formatPrice(team.remainingBudget)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-400">Players:</span>
+                    <span className="text-slate-200">{team.players.length}</span>
+                  </div>
+                  {finalPrice > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-400">After bid:</span>
+                      <span className={`${canAfford(team.id, finalPrice) ? 'text-green-300' : 'text-red-300'}`}>
+                        {formatPrice(team.remainingBudget - finalPrice)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
