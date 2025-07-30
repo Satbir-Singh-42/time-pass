@@ -40,17 +40,12 @@ export const useAuthState = () => {
       setUser(user);
       
       if (user) {
-        // Get user role from custom claims or API
-        try {
-          const token = await user.getIdTokenResult();
-          const role = token.claims.role as "admin" | "viewer" || "viewer";
-          setUserRole(role);
-        } catch (error) {
-          console.error("Error getting user role:", error);
-          setUserRole("viewer"); // Default to viewer on error
-        }
+        // Only authenticated users are admins (single admin account)
+        // All Firebase authenticated users have admin privileges
+        setUserRole("admin");
       } else {
-        setUserRole(null);
+        // Non-authenticated users are viewers by default
+        setUserRole("viewer");
       }
       
       setLoading(false);

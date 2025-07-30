@@ -31,16 +31,16 @@ function AppContent() {
       <Route path="/login" component={Login} />
       <Route path="/dashboard">
         {() => {
+          // Admin dashboard requires authentication
           if (!user) return <Login />;
-          return isAdmin ? <AuctionDashboard /> : <ViewerDashboard />;
+          return <AuctionDashboard />;
         }}
       </Route>
       <Route path="/admin">
         {() => user && isAdmin ? <AuctionDashboard /> : <Login />}
       </Route>
-      <Route path="/viewer">
-        {() => user ? <ViewerDashboard /> : <Login />}
-      </Route>
+      <Route path="/viewer" component={ViewerDashboard} />
+      <Route path="/live" component={ViewerDashboard} />
       <Route component={NotFound} />
     </Switch>
   );

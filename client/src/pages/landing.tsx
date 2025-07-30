@@ -1,14 +1,13 @@
-import { useState } from "react";
 import { Eye, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import cricketImage from "@assets/image_1753847253370.png";
 
 export default function Landing() {
-  const [showComingSoon, setShowComingSoon] = useState(false);
+  const [, setLocation] = useLocation();
 
   const handleViewAuction = () => {
-    setShowComingSoon(true);
+    setLocation("/live");
   };
 
   return (
@@ -47,14 +46,14 @@ export default function Landing() {
           
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 lg:gap-8 justify-center items-center max-w-2xl mx-auto">
-            {/* View Auction Button */}
+            {/* View Live Auction Button */}
             <Button 
               onClick={handleViewAuction}
               size="lg"
               className="w-full sm:w-auto bg-gradient-to-r from-emerald-600 to-green-700 hover:from-emerald-700 hover:to-green-800 text-white px-6 sm:px-8 lg:px-10 py-3 sm:py-4 lg:py-5 text-base sm:text-lg lg:text-xl font-bold rounded-lg sm:rounded-xl shadow-xl hover:shadow-2xl transition-all duration-200 min-w-[200px] sm:min-w-[240px] h-12 sm:h-14 lg:h-16 touch-manipulation"
             >
               <Eye className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 mr-2" />
-              View Auction
+              View Live Auction
             </Button>
             
             {/* Admin Login Button */}
@@ -82,23 +81,6 @@ export default function Landing() {
           </div>
         </div>
       </div>
-
-      {/* Coming Soon Modal */}
-      {showComingSoon && (
-        <div className="fixed inset-0 backdrop-blur-sm bg-black/60 flex items-center justify-center p-6 z-50">
-          <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-3xl shadow-2xl w-full max-w-md p-8 text-center border border-slate-700">
-            <div className="text-6xl mb-6">🏆</div>
-            <h2 className="text-2xl font-bold text-white mb-4">Auction Coming Soon!</h2>
-            <p className="text-slate-300 mb-6">The live auction feature is currently under development. Stay tuned for the ultimate cricket auction experience!</p>
-            <Button 
-              onClick={() => setShowComingSoon(false)}
-              className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-bold py-3 px-6 rounded-xl transition-all hover:scale-105"
-            >
-              Got it!
-            </Button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

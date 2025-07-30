@@ -302,6 +302,16 @@ The architecture supports scalable auction management with real-time capabilitie
 
 The platform is production-ready with all admin features fully implemented and tested, using Firebase Firestore exclusively as requested.
 
+## Authentication Model Update (January 30, 2025)
+
+✅ **Simplified Access Control Implemented**:
+- **Single Admin Account**: Only one admin account exists with Firebase Authentication (email/password login)
+- **No Login Required for Viewers**: Viewers can access live updates at `/live` and `/viewer` routes without authentication
+- **Role-Based Access**: Firebase ensures secure separation between admin functions and public viewer access
+- **Public Routes**: Landing page offers "View Live Auction" button for immediate viewer access
+- **Admin Route**: Protected admin dashboard accessible only after Firebase authentication
+- **Security**: Firebase Authentication handles all security, session management, and access control
+
 ✅ **Firebase Configuration Complete**: Firebase credentials are properly configured through Replit Secrets for permanent, secure access. Authentication and Firestore database connections are active and working correctly.
 
 ✅ **Enhanced Admin Dashboard**: The admin dashboard now features a premium auction-style design with:
