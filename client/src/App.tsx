@@ -7,7 +7,7 @@ import { AuthProvider } from "@/components/AuthProvider";
 import { useAuth } from "@/hooks/useAuth";
 import Landing from "@/pages/landing";
 import Login from "@/pages/login";
-import AuctionDashboard from "@/pages/auction-dashboard";
+import AdminDashboard from "@/pages/admin-dashboard";
 import ViewerDashboard from "@/pages/viewer-dashboard";
 import NotFound from "@/pages/not-found";
 
@@ -29,15 +29,18 @@ function AppContent() {
     <Switch>
       <Route path="/" component={Landing} />
       <Route path="/login" component={Login} />
-      <Route path="/dashboard">
+      <Route path="/admin">
         {() => {
-          // Admin dashboard requires authentication
           if (!user) return <Login />;
-          return <AuctionDashboard />;
+          if (!isAdmin) return <ViewerDashboard />;
+          return <AdminDashboard />;
         }}
       </Route>
-      <Route path="/admin">
-        {() => user && isAdmin ? <AuctionDashboard /> : <Login />}
+      <Route path="/dashboard">
+        {() => {
+          if (!user) return <Login />;
+          return isAdmin ? <AdminDashboard /> : <ViewerDashboard />;
+        }}
       </Route>
       <Route path="/viewer" component={ViewerDashboard} />
       <Route path="/live" component={ViewerDashboard} />

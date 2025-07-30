@@ -1,85 +1,73 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useQuery } from "@tanstack/react-query";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Progress } from "@/components/ui/progress";
 import { 
   Users, 
   Trophy, 
-  Target, 
   BarChart3, 
   FileText, 
   TrendingUp,
   Crown,
-  DollarSign,
-  Calendar,
   Settings,
   LogOut,
-  ChevronRight,
-  Activity,
   Menu,
   X,
   Gavel,
   Timer,
-  PlusCircle,
   Upload,
   Download,
-  Star,
-  Zap,
-  Eye,
   PlayCircle,
-  PauseCircle,
   StopCircle,
-  UserPlus,
   Shield,
-  Waves
+  Waves,
+  Activity
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { signOut, auth } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
-import { useFirestoreData } from "@/hooks/useFirestore";
+import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
+
+// Import components for each section
 import DashboardHome from "@/components/dashboard-home";
-import UploadPlayers from "@/components/upload-players";
-import ManagePools from "@/components/manage-pools";
-import ManageTeams from "@/components/manage-teams";
+import PlayerManagement from "@/components/player-management";
+import PoolManagement from "@/components/pool-management";
+import TeamManagement from "@/components/team-management-new";
 import LiveAuction from "@/components/live-auction";
 import AuctionLog from "@/components/auction-log";
 import Leaderboard from "@/components/leaderboard";
-import Settings from "@/components/settings";
-
-
 
 const navigationItems = [
-  { id: "overview", label: "Dashboard", icon: BarChart3, description: "Overview & stats" },
+  { id: "overview", label: "Overview", icon: BarChart3, description: "Dashboard stats" },
   { id: "players", label: "Player Pool", icon: Users, description: "Manage players" },
-  { id: "pools", label: "Pool Management", icon: Waves, description: "Organize auction pools" },
+  { id: "pools", label: "Pool Management", icon: Waves, description: "Organize pools" },
   { id: "teams", label: "Teams", icon: Trophy, description: "Team management" },
-  { id: "auction", label: "Auction Control", icon: Gavel, description: "Live auction" },
-  { id: "stats", label: "Leaderboard", icon: TrendingUp, description: "Statistics" },
-  { id: "reports", label: "Reports", icon: FileText, description: "Analytics" },
+  { id: "auction", label: "Live Auction", icon: Gavel, description: "Auction control" },
+  { id: "log", label: "Auction Log", icon: Activity, description: "Transaction history" },
+  { id: "leaderboard", label: "Leaderboard", icon: TrendingUp, description: "Team rankings" },
 ];
 
 export default function AdminDashboard() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
-  
-  // Firebase data hooks
-  const { 
-    useDashboardStatsQuery, 
-    usePlayersQuery, 
-    useTeamsQuery,
-    useActiveAuctionsQuery 
-  } = useFirestoreData();
-  
-  const { data: stats, isLoading: statsLoading } = useDashboardStatsQuery();
-  const { data: players, isLoading: playersLoading } = usePlayersQuery();
-  const { data: teams, isLoading: teamsLoading } = useTeamsQuery();
-  const { data: activeAuctions, isLoading: auctionsLoading } = useActiveAuctionsQuery();
+
+  // Fetch dashboard stats and live data
+  const { data: stats, isLoading: statsLoading } = useQuery({
+    queryKey: ["/api/dashboard/stats"],
+    refetchInterval: 5000, // Refresh every 5 seconds for live updates
+  });
+
+  const { data: activeAuctions, isLoading: auctionsLoading } = useQuery({
+    queryKey: ["/api/auctions/active"],
+    refetchInterval: 2000, // More frequent for auction status
+  });
 
   const handleSignOut = async () => {
     try {
@@ -88,7 +76,7 @@ export default function AdminDashboard() {
         title: "Signed Out",
         description: "Successfully logged out from admin dashboard",
       });
-      setLocation("/login");
+      setLocation("/");
     } catch (error) {
       toast({
         title: "Error",
@@ -98,54 +86,73 @@ export default function AdminDashboard() {
     }
   };
 
-  const NavItem = ({ item, isActive, onClick }: { item: typeof navigationItems[0], isActive: boolean, onClick: () => void }) => (
+  const handleDownloadTemplate = () => {
+    const csvContent = `name,role,country,basePrice,performanceStats,bio
+Example Player,Batsman,India,150,"{""runs"": 12000, ""average"": 59.07, ""centuries"": 43}","Star batsman and captain"
+Example Bowler,Bowler,India,120,"{""wickets"": 121, ""economy"": 4.17, ""bestFigures"": ""6/27""}","Premier fast bowler"
+Example All-rounder,All-rounder,England,140,"{""runs"": 4956, ""wickets"": 174, ""average"": 35.89}","Star all-rounder"
+Example Keeper,Wicket-keeper,India,125,"{""runs"": 10773, ""dismissals"": 444, ""strikeRate"": 87.56}","Wicket-keeper batsman"`;
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'cricket-auction-player-template.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const NavItem = ({ item, isActive, onClick }: { 
+    item: typeof navigationItems[0], 
+    isActive: boolean, 
+    onClick: () => void 
+  }) => (
     <button
       onClick={onClick}
-      className={`w-full flex items-center px-4 py-2 text-left transition-all duration-300 group ${
+      className={`w-full flex items-center px-4 py-3 text-left transition-all duration-200 group ${
         isActive 
-          ? "bg-cricket-teal/20 border-r-2 border-cricket-teal" 
-          : "hover:bg-cricket-teal/10"
+          ? "bg-cricket-teal/20 border-r-4 border-cricket-teal text-white" 
+          : "hover:bg-cricket-teal/10 text-cricket-teal hover:text-white"
       }`}
     >
-      <item.icon className={`w-4 h-4 mr-3 flex-shrink-0 transition-colors ${
+      <item.icon className={`w-5 h-5 mr-3 flex-shrink-0 ${
         isActive ? "text-cricket-teal" : "text-cricket-teal/70 group-hover:text-cricket-teal"
       }`} />
       <div className="flex-1 min-w-0">
-        <p className={`font-inter font-medium text-sm truncate transition-colors ${
+        <p className={`font-medium text-sm ${
           isActive ? "text-white" : "text-cricket-teal group-hover:text-white"
         }`}>
           {item.label}
         </p>
-        <p className={`text-xs truncate font-inter transition-colors ${
-          isActive ? "text-cricket-teal font-medium" : "text-cricket-teal/80 group-hover:text-cricket-teal"
+        <p className={`text-xs ${
+          isActive ? "text-cricket-teal/90" : "text-cricket-teal/60 group-hover:text-cricket-teal/80"
         }`}>
           {item.description}
         </p>
       </div>
-      {isActive && <ChevronRight className="w-4 h-4 flex-shrink-0 text-cricket-teal" />}
     </button>
   );
 
   return (
-    <div className="h-screen bg-cricket-navy overflow-hidden flex max-w-full">
-      {/* Desktop Sidebar Only */}
-      <div className={`hidden lg:flex lg:w-80 xl:w-72 2xl:w-80 sidebar-gradient border-r border-cricket-teal/20 flex-col flex-shrink-0`}>
+    <div className="h-screen bg-cricket-navy overflow-hidden flex">
+      {/* Desktop Sidebar */}
+      <div className={`hidden lg:flex lg:w-80 bg-cricket-navy-dark border-r border-cricket-teal/20 flex-col flex-shrink-0`}>
         {/* Sidebar Header */}
-        <div className="p-4 border-b border-cricket-teal/20">
+        <div className="p-6 border-b border-cricket-teal/20">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-cricket-teal to-cricket-gold rounded-xl flex items-center justify-center shadow-cricket-teal">
-              <Crown className="w-6 h-6 text-white" />
+            <div className="w-12 h-12 bg-gradient-to-br from-cricket-teal to-cricket-gold rounded-xl flex items-center justify-center">
+              <Crown className="w-7 h-7 text-white" />
             </div>
             <div>
-              <h1 className="text-lg font-poppins font-bold text-white uppercase tracking-wide">Cricket Auction</h1>
-              <p className="text-xs text-cricket-teal font-inter">Admin Control Panel</p>
+              <h1 className="text-xl font-bold text-white uppercase tracking-wide">Cricket Auction</h1>
+              <p className="text-sm text-cricket-teal font-medium">Admin Dashboard</p>
             </div>
           </div>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 py-3 overflow-y-auto">
-          <div className="space-y-1">
+        <nav className="flex-1 py-4 overflow-y-auto">
+          <div className="space-y-2 px-3">
             {navigationItems.map((item) => (
               <NavItem
                 key={item.id}
@@ -158,40 +165,41 @@ export default function AdminDashboard() {
         </nav>
 
         {/* Sidebar Footer */}
-        <div className="p-4 border-t border-cricket-teal/20">
-          <div className="flex items-center space-x-3 mb-3">
-            <div className="w-8 h-8 bg-cricket-teal/20 rounded-full flex items-center justify-center">
-              <Settings className="w-4 h-4 text-cricket-teal" />
+        <div className="p-6 border-t border-cricket-teal/20">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="w-10 h-10 bg-cricket-teal/20 rounded-full flex items-center justify-center">
+              <Shield className="w-5 h-5 text-cricket-teal" />
             </div>
             <div>
-              <p className="text-sm text-white font-inter font-medium">Admin User</p>
-              <p className="text-xs text-cricket-teal font-medium">online</p>
+              <p className="text-sm font-medium text-white">{user?.displayName || 'Admin User'}</p>
+              <Badge variant="outline" className="text-xs text-cricket-teal border-cricket-teal/50">
+                Administrator
+              </Badge>
             </div>
           </div>
           <Button
             variant="outline"
             onClick={handleSignOut}
-            className="w-full text-white bg-cricket-gold/20 border-cricket-gold hover:bg-cricket-gold hover:text-cricket-navy transition-all duration-300 font-inter font-medium"
+            className="w-full bg-cricket-gold/10 border-cricket-gold/50 text-cricket-gold hover:bg-cricket-gold hover:text-cricket-navy"
           >
             <LogOut className="w-4 h-4 mr-2" />
             Sign Out
           </Button>
         </div>
       </div>
-      {/* Mobile & Tablet Sidebar Overlay */}
+
+      {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div className="fixed inset-0 bg-black/50" onClick={() => setSidebarOpen(false)} />
-          <div className="fixed left-0 top-0 h-full w-80 sidebar-gradient border-r border-cricket-teal/20 flex flex-col">
-            {/* Mobile Sidebar Header */}
-            <div className="p-6 border-b border-cricket-teal/20 flex items-center justify-between">
+          <div className="fixed left-0 top-0 h-full w-80 bg-cricket-navy-dark border-r border-cricket-teal/20 flex flex-col">
+            {/* Mobile Header */}
+            <div className="p-4 border-b border-cricket-teal/20 flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <div className="w-8 h-8 bg-gradient-to-br from-cricket-teal to-cricket-gold rounded-lg flex items-center justify-center">
                   <Crown className="w-5 h-5 text-white" />
                 </div>
-                <div>
-                  <h1 className="text-lg font-poppins font-bold text-white uppercase tracking-wide">Admin Panel</h1>
-                </div>
+                <h1 className="text-lg font-bold text-white">Admin Panel</h1>
               </div>
               <Button
                 variant="ghost"
@@ -205,7 +213,7 @@ export default function AdminDashboard() {
 
             {/* Mobile Navigation */}
             <nav className="flex-1 py-4">
-              <div className="space-y-1">
+              <div className="space-y-2 px-3">
                 {navigationItems.map((item) => (
                   <NavItem
                     key={item.id}
@@ -222,10 +230,11 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
+
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-        {/* Top Header Bar */}
-        <header className="bg-cricket-navy-dark border-b border-cricket-teal/20 px-4 lg:px-8 py-4 flex-shrink-0">
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Top Header */}
+        <header className="bg-cricket-navy-dark border-b border-cricket-teal/20 px-4 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <Button
@@ -237,280 +246,138 @@ export default function AdminDashboard() {
                 <Menu className="w-5 h-5" />
               </Button>
               <div>
-                <h2 className="text-xl font-poppins font-bold text-white capitalize">
+                <h2 className="text-xl font-bold text-white">
                   {navigationItems.find(item => item.id === activeTab)?.label || "Dashboard"}
                 </h2>
-                <p className="text-sm text-[#9ca1a1]">
+                <p className="text-sm text-cricket-teal/80">
                   {navigationItems.find(item => item.id === activeTab)?.description}
                 </p>
               </div>
             </div>
-            
+
             <div className="flex items-center space-x-3">
+              {/* Live Status */}
               {auctionsLoading ? (
-                <Badge variant="outline" className="text-cricket-teal/60 border-cricket-teal/30 bg-cricket-teal/5 flex items-center">
+                <Badge variant="outline" className="text-cricket-teal/60 border-cricket-teal/30">
                   <div className="w-2 h-2 bg-cricket-teal/60 rounded-full mr-2" />
                   Loading...
                 </Badge>
               ) : (activeAuctions && activeAuctions.length > 0) ? (
-                <>
-                  <Badge variant="outline" className="text-green-400 border-green-400/50 bg-green-400/10 flex items-center">
-                    <div className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse" />
-                    Live Auction
-                  </Badge>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    className="bg-red-600 hover:bg-red-700 hidden sm:flex"
-                  >
-                    <Timer className="w-4 h-4 mr-2" />
-                    End Auction
-                  </Button>
-                </>
+                <Badge variant="outline" className="text-green-400 border-green-400/50 bg-green-400/10">
+                  <div className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse" />
+                  Live Auction Active
+                </Badge>
               ) : (
-                <Badge variant="outline" className="text-orange-400 border-orange-400/50 bg-orange-400/10 flex items-center">
+                <Badge variant="outline" className="text-orange-400 border-orange-400/50 bg-orange-400/10">
                   <div className="w-2 h-2 bg-orange-400 rounded-full mr-2" />
                   No Active Auction
                 </Badge>
               )}
+
+              {/* Quick Actions */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDownloadTemplate}
+                className="hidden sm:flex bg-cricket-teal/10 border-cricket-teal/50 text-cricket-teal hover:bg-cricket-teal hover:text-white"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                CSV Template
+              </Button>
             </div>
           </div>
         </header>
 
         {/* Main Content */}
         <main className="flex-1 overflow-y-auto bg-cricket-navy">
-          <div className="max-w-full mx-auto p-4 lg:p-8 2xl:max-w-7xl 3xl:max-w-8xl 2xl:px-12">
+          <div className="max-w-7xl mx-auto p-4 lg:p-8">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              {/* Overview Tab - Dashboard Overview */}
-              <TabsContent value="overview" className="space-y-8">
+              <TabsContent value="overview">
                 <DashboardHome />
               </TabsContent>
-                  
-                  {/* Total Players Uploaded */}
-                  <Card className="bg-cricket-card border-cricket-teal/30 auction-card-hover">
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <UserPlus className="w-5 h-5 text-cricket-teal" />
-                            <p className="text-sm text-cricket-teal font-inter uppercase tracking-wide font-medium">Total Players Uploaded</p>
-                          </div>
-                          <p className="text-3xl font-poppins font-bold text-white mb-1">
-                            {statsLoading ? (
-                              <span className="animate-pulse">...</span>
-                            ) : (
-                              stats?.totalPlayers || 0
-                            )}
-                          </p>
-                          <p className="text-xs text-cricket-teal/70 font-inter">
-                            Players in database
-                          </p>
-                        </div>
-                        <div className="p-4 bg-cricket-teal/20 rounded-xl border border-cricket-teal/30">
-                          <Users className="w-8 h-8 text-cricket-teal" />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
 
-                  {/* Teams Registered */}
-                  <Card className="bg-cricket-card border-cricket-gold/30 auction-card-hover">
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <Shield className="w-5 h-5 text-cricket-gold" />
-                            <p className="text-sm text-cricket-gold font-inter uppercase tracking-wide font-medium">Teams Registered</p>
-                          </div>
-                          <p className="text-3xl font-poppins font-bold text-white mb-1">
-                            {statsLoading ? (
-                              <span className="animate-pulse">...</span>
-                            ) : (
-                              stats?.totalTeams || 0
-                            )}
-                          </p>
-                          <p className="text-xs text-cricket-gold/70 font-inter">
-                            Participating teams
-                          </p>
-                        </div>
-                        <div className="p-4 bg-cricket-gold/20 rounded-xl border border-cricket-gold/30">
-                          <Trophy className="w-8 h-8 text-cricket-gold" />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Auction Status */}
-                  <Card className="bg-cricket-card border-red-500/30 auction-card-hover">
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <Gavel className="w-5 h-5 text-red-400" />
-                            <p className="text-sm text-red-400 font-inter uppercase tracking-wide font-medium">Auction Status</p>
-                          </div>
-                          <div className="flex items-center space-x-2 mb-1">
-                            {auctionsLoading ? (
-                              <span className="animate-pulse text-white">...</span>
-                            ) : (
-                              <>
-                                {(activeAuctions && activeAuctions.length > 0) ? (
-                                  <>
-                                    <PlayCircle className="w-5 h-5 text-green-400" />
-                                    <p className="text-2xl font-poppins font-bold text-green-400">LIVE</p>
-                                  </>
-                                ) : (
-                                  <>
-                                    <StopCircle className="w-5 h-5 text-red-400" />
-                                    <p className="text-2xl font-poppins font-bold text-red-400">NOT STARTED</p>
-                                  </>
-                                )}
-                              </>
-                            )}
-                          </div>
-                          <p className="text-xs text-red-400/70 font-inter">
-                            {(activeAuctions && activeAuctions.length > 0) ? 'Auction in progress' : 'Ready to begin auction'}
-                          </p>
-                        </div>
-                        <div className="p-4 bg-red-500/20 rounded-xl border border-red-500/30">
-                          {(activeAuctions && activeAuctions.length > 0) ? (
-                            <Activity className="w-8 h-8 text-red-400 animate-pulse" />
-                          ) : (
-                            <Timer className="w-8 h-8 text-red-400" />
-                          )}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Players Remaining in Pool */}
-                  <Card className="bg-cricket-card border-orange-500/30 auction-card-hover">
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <Users className="w-5 h-5 text-orange-400" />
-                            <p className="text-sm text-orange-400 font-inter uppercase tracking-wide font-medium">Players Remaining</p>
-                          </div>
-                          <p className="text-3xl font-poppins font-bold text-white mb-1">
-                            {statsLoading ? (
-                              <span className="animate-pulse">...</span>
-                            ) : (
-                              stats?.unsoldPlayers || 0
-                            )}
-                          </p>
-                          <p className="text-xs text-orange-400/70 font-inter">
-                            Available for auction
-                          </p>
-                        </div>
-                        <div className="p-4 bg-orange-500/20 rounded-xl border border-orange-500/30">
-                          <Users className="w-8 h-8 text-orange-400" />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Auctioned Players */}
-                  <Card className="bg-cricket-card border-emerald-500/30 auction-card-hover">
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <Target className="w-5 h-5 text-emerald-400" />
-                            <p className="text-sm text-emerald-400 font-inter uppercase tracking-wide font-medium">Auctioned Players</p>
-                          </div>
-                          <p className="text-3xl font-poppins font-bold text-white mb-1">
-                            {statsLoading ? (
-                              <span className="animate-pulse">...</span>
-                            ) : (
-                              stats?.soldPlayers || 0
-                            )}
-                          </p>
-                          <p className="text-xs text-emerald-400/70 font-inter">
-                            Successfully sold
-                          </p>
-                        </div>
-                        <div className="p-4 bg-emerald-500/20 rounded-xl border border-emerald-500/30">
-                          <Target className="w-8 h-8 text-emerald-400" />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Additional Stats Card */}
-                  <Card className="bg-cricket-card border-cricket-teal/30 auction-card-hover">
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <DollarSign className="w-5 h-5 text-cricket-teal" />
-                            <p className="text-sm text-cricket-teal font-inter uppercase tracking-wide font-medium">Total Revenue</p>
-                          </div>
-                          <p className="text-3xl font-poppins font-bold text-white mb-1">
-                            {statsLoading ? (
-                              <span className="animate-pulse">...</span>
-                            ) : (
-                              `₹${((stats?.totalRevenue || 0) / 10000000).toFixed(1)} Cr`
-                            )}
-                          </p>
-                          <p className="text-xs text-cricket-teal/70 font-inter">
-                            Total auction value
-                          </p>
-                        </div>
-                        <div className="p-4 bg-cricket-teal/20 rounded-xl border border-cricket-teal/30">
-                          <DollarSign className="w-8 h-8 text-cricket-teal" />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* Auto-refresh indicator */}
-                <div className="flex justify-center">
-                  <div className="flex items-center space-x-2 px-4 py-2 bg-cricket-navy/50 border border-cricket-teal/30 rounded-full">
-                    <div className="w-2 h-2 bg-cricket-teal rounded-full animate-pulse"></div>
-                    <p className="text-xs text-cricket-teal font-inter font-medium">
-                      Dashboard updates automatically from live Firebase data
-                    </p>
-                  </div>
-                </div>
-
-
+              <TabsContent value="players">
+                <Card className="bg-cricket-card border-cricket-teal/30">
+                  <CardHeader>
+                    <CardTitle className="text-white">Player Management</CardTitle>
+                    <CardDescription className="text-cricket-teal/70">
+                      Upload CSV player data, manage player details, and organize by role and country.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <PlayerManagement />
+                  </CardContent>
+                </Card>
               </TabsContent>
 
-              {/* Players Tab */}
-              <TabsContent value="players" className="space-y-6">
-                <UploadPlayers />
+              <TabsContent value="pools">
+                <Card className="bg-cricket-card border-cricket-teal/30">
+                  <CardHeader>
+                    <CardTitle className="text-white">Pool Management</CardTitle>
+                    <CardDescription className="text-cricket-teal/70">
+                      Create and organize player pools for strategic auction management.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <PoolManagement />
+                  </CardContent>
+                </Card>
               </TabsContent>
 
-              {/* Pool Management Tab */}
-              <TabsContent value="pools" className="space-y-6">
-                <ManagePools />
+              <TabsContent value="teams">
+                <Card className="bg-cricket-card border-cricket-teal/30">
+                  <CardHeader>
+                    <CardTitle className="text-white">Team Management</CardTitle>
+                    <CardDescription className="text-cricket-teal/70">
+                      Manage team rosters, budgets, and performance statistics.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <TeamManagement />
+                  </CardContent>
+                </Card>
               </TabsContent>
 
-              {/* Teams Tab */}
-              <TabsContent value="teams" className="space-y-6">
-                <ManageTeams />
+              <TabsContent value="auction">
+                <Card className="bg-cricket-card border-cricket-teal/30">
+                  <CardHeader>
+                    <CardTitle className="text-white">Live Auction Control</CardTitle>
+                    <CardDescription className="text-cricket-teal/70">
+                      Control live bidding, manage player assignments, and monitor auction progress.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <LiveAuction />
+                  </CardContent>
+                </Card>
               </TabsContent>
 
-              {/* Auction Tab */}
-              <TabsContent value="auction" className="space-y-6">
-                <LiveAuction />
+              <TabsContent value="log">
+                <Card className="bg-cricket-card border-cricket-teal/30">
+                  <CardHeader>
+                    <CardTitle className="text-white">Auction Transaction Log</CardTitle>
+                    <CardDescription className="text-cricket-teal/70">
+                      Complete history of all player sales with prices, teams, and timestamps.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <AuctionLog />
+                  </CardContent>
+                </Card>
               </TabsContent>
 
-              {/* Stats Tab */}
-              <TabsContent value="stats" className="space-y-6">
-                <AuctionLog />
-              </TabsContent>
-
-              {/* Reports Tab */}
-              <TabsContent value="reports" className="space-y-6">
-                <Leaderboard />
-              </TabsContent>
-
-              {/* Configuration Tab */}
-              <TabsContent value="config" className="space-y-6">
-                <Settings />
+              <TabsContent value="leaderboard">
+                <Card className="bg-cricket-card border-cricket-teal/30">
+                  <CardHeader>
+                    <CardTitle className="text-white">Team Leaderboard</CardTitle>
+                    <CardDescription className="text-cricket-teal/70">
+                      Live team rankings based on points, budget utilization, and player composition.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Leaderboard />
+                  </CardContent>
+                </Card>
               </TabsContent>
             </Tabs>
           </div>
