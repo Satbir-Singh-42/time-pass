@@ -1,0 +1,284 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Cricket Theme - Light Mode */
+  --background: hsl(220, 20%, 97%);
+  --foreground: hsl(200, 25%, 15%);
+  --muted: hsl(220, 20%, 94%);
+  --muted-foreground: hsl(200, 15%, 45%);
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: hsl(200, 25%, 15%);
+  --card: hsl(0, 0%, 100%);
+  --card-foreground: hsl(200, 25%, 15%);
+  --border: hsl(220, 20%, 88%);
+  --input: hsl(220, 20%, 88%);
+  --primary: hsl(165, 100%, 36%);
+  --primary-foreground: hsl(0, 0%, 100%);
+  --secondary: hsl(45, 100%, 65%);
+  --secondary-foreground: hsl(200, 25%, 15%);
+  --accent: hsl(45, 100%, 65%);
+  --accent-foreground: hsl(200, 25%, 15%);
+  --destructive: hsl(0, 84%, 60%);
+  --destructive-foreground: hsl(0, 0%, 100%);
+  --ring: hsl(165, 100%, 36%);
+  --radius: 0.75rem;
+  
+  /* Cricket specific colors */
+  --cricket-navy: hsl(200, 60%, 8%);
+  --cricket-navy-light: hsl(200, 40%, 12%);
+  --cricket-navy-dark: hsl(200, 70%, 6%);
+  --cricket-teal: hsl(165, 100%, 36%);
+  --cricket-gold: hsl(45, 100%, 65%);
+  --cricket-overlay: hsl(200, 60%, 8%);
+  --cricket-sidebar: hsl(200, 65%, 10%);
+  --cricket-card: hsl(200, 45%, 15%);
+}
+
+.dark {
+  /* Cricket Theme - Dark Mode */
+  --background: hsl(200, 60%, 8%);
+  --foreground: hsl(0, 0%, 95%);
+  --muted: hsl(200, 30%, 15%);
+  --muted-foreground: hsl(200, 15%, 60%);
+  --popover: hsl(200, 40%, 12%);
+  --popover-foreground: hsl(0, 0%, 95%);
+  --card: hsl(200, 40%, 12%);
+  --card-foreground: hsl(0, 0%, 95%);
+  --border: hsl(200, 30%, 18%);
+  --input: hsl(200, 30%, 18%);
+  --primary: hsl(165, 100%, 36%);
+  --primary-foreground: hsl(0, 0%, 100%);
+  --secondary: hsl(200, 30%, 18%);
+  --secondary-foreground: hsl(0, 0%, 85%);
+  --accent: hsl(45, 100%, 65%);
+  --accent-foreground: hsl(200, 25%, 15%);
+  --destructive: hsl(0, 75%, 55%);
+  --destructive-foreground: hsl(0, 0%, 100%);
+  --ring: hsl(165, 100%, 36%);
+  
+  /* Cricket specific colors for dark mode */
+  --cricket-navy: hsl(200, 60%, 8%);
+  --cricket-navy-light: hsl(200, 40%, 12%);
+  --cricket-navy-dark: hsl(200, 70%, 6%);
+  --cricket-teal: hsl(165, 100%, 36%);
+  --cricket-gold: hsl(45, 100%, 65%);
+  --cricket-overlay: hsl(200, 60%, 8%);
+  --cricket-sidebar: hsl(200, 65%, 10%);
+  --cricket-card: hsl(200, 45%, 15%);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html, body {
+    @apply antialiased bg-background text-foreground;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+  }
+
+  body {
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
+    touch-action: manipulation;
+  }
+
+  #root {
+    height: 100%;
+    width: 100%;
+    min-height: 100vh;
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+
+  /* Ensure no unwanted scrolling on mobile */
+  * {
+    box-sizing: border-box;
+  }
+
+  /* Prevent layout breakage on ultra-wide screens */
+  @media (min-width: 1800px) {
+    .container {
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+  }
+
+  /* Prevent mobile zoom on inputs */
+  input[type="email"],
+  input[type="password"],
+  input[type="text"],
+  textarea,
+  select {
+    font-size: 16px;
+  }
+
+  /* Smooth scroll behavior */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Prevent text selection on UI elements */
+  button,
+  .touch-manipulation {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+}
+
+@layer utilities {
+  /* Typography */
+  .font-inter {
+    font-family: 'Inter', sans-serif;
+  }
+  
+  .font-poppins {
+    font-family: 'Poppins', sans-serif;
+  }
+
+  /* Cricket Theme Colors */
+  .text-cricket-navy {
+    color: var(--cricket-navy);
+  }
+  
+  .bg-cricket-navy {
+    background-color: var(--cricket-navy);
+  }
+  
+  .text-cricket-navy-light {
+    color: var(--cricket-navy-light);
+  }
+  
+  .bg-cricket-navy-light {
+    background-color: var(--cricket-navy-light);
+  }
+  
+  .bg-cricket-navy-dark {
+    background-color: var(--cricket-navy-dark);
+  }
+  
+  .bg-cricket-sidebar {
+    background-color: var(--cricket-sidebar);
+  }
+  
+  .bg-cricket-card {
+    background-color: var(--cricket-card);
+  }
+  
+  .text-cricket-teal {
+    color: var(--cricket-teal);
+  }
+  
+  .bg-cricket-teal {
+    background-color: var(--cricket-teal);
+  }
+  
+  .text-cricket-gold {
+    color: var(--cricket-gold);
+  }
+  
+  .bg-cricket-gold {
+    background-color: var(--cricket-gold);
+  }
+  
+  .border-cricket-teal {
+    border-color: var(--cricket-teal);
+  }
+  
+  .border-cricket-gold {
+    border-color: var(--cricket-gold);
+  }
+
+  /* Cricket Background Effects */
+  .cricket-bg-overlay {
+    background: 
+      linear-gradient(rgba(12, 26, 42, 0.95), rgba(12, 26, 42, 0.95)),
+      url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="2" fill="%2300B894" opacity="0.1"/></svg>');
+    background-size: 50px 50px;
+  }
+  
+  .glass-effect {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .glass-effect-dark {
+    background: rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .gradient-text-teal-gold {
+    background: linear-gradient(135deg, var(--cricket-teal), var(--cricket-gold));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .shadow-cricket-teal {
+    box-shadow: 0 0 20px rgba(0, 184, 148, 0.3);
+  }
+  
+  .shadow-cricket-gold {
+    box-shadow: 0 0 20px rgba(244, 196, 48, 0.3);
+  }
+  
+  .sidebar-gradient {
+    background: linear-gradient(180deg, var(--cricket-sidebar), var(--cricket-navy-dark));
+  }
+  
+  .auction-card-hover {
+    transition: all 0.3s ease;
+  }
+  
+  .auction-card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(0, 184, 148, 0.15);
+  }
+  
+  /* Navigation items handled by inline classes now */
+
+  /* Animations */
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+  
+  .animate-pulse-slow {
+    animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  
+  .animate-glow {
+    animation: glow 2s ease-in-out infinite alternate;
+  }
+}
+
+@keyframes float {
+  0%, 100% { 
+    transform: translateY(0px); 
+  }
+  50% { 
+    transform: translateY(-10px); 
+  }
+}
+
+@keyframes glow {
+  from {
+    box-shadow: 0 0 20px rgba(0, 184, 148, 0.5);
+  }
+  to {
+    box-shadow: 0 0 30px rgba(0, 184, 148, 0.8);
+  }
+}
