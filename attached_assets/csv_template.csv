@@ -1,0 +1,6 @@
+name,role,country,basePrice,bio,performanceStats
+Virat Kohli,Batsman,India,150,"Star Indian batsman and former captain","{""runs"": 12000, ""average"": 59.07, ""centuries"": 43}"
+Jasprit Bumrah,Bowler,India,120,"India's premier fast bowler","{""wickets"": 121, ""economy"": 4.17, ""bestFigures"": ""6/27""}"
+Ben Stokes,All-rounder,England,140,"England's star all-rounder","{""runs"": 4956, ""wickets"": 174, ""average"": 35.89}"
+MS Dhoni,Wicket-keeper,India,125,"Former Indian captain and wicket-keeper","{""runs"": 10773, ""dismissals"": 444, ""strikeRate"": 87.56}"
+Kagiso Rabada,Bowler,South Africa,110,"South African fast bowler","{""wickets"": 243, ""economy"": 4.73, ""bestFigures"": ""7/112""}"

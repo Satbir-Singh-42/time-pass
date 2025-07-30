@@ -6,9 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Upload, Plus, Search, Filter } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { Upload, Plus, Search, Filter, Download, FileDown, AlertTriangle, Lock } from "lucide-react";
 import type { Player, InsertPlayer } from "@shared/schema";
 
 export default function PlayerManagement() {
@@ -18,6 +22,7 @@ export default function PlayerManagement() {
   const [showAddForm, setShowAddForm] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { isAdmin } = useAuth();
 
   // Fetch all players
   const { data: players = [], isLoading } = useQuery<Player[]>({
@@ -95,6 +100,38 @@ export default function PlayerManagement() {
     addPlayerMutation.mutate(player);
   };
 
+  // Download CSV template function
+  const handleDownloadTemplate = () => {
+    const csvContent = `name,role,country,basePrice,bio,performanceStats
+Virat Kohli,Batsman,India,150,"Star Indian batsman and former captain","{""runs"": 12000, ""average"": 59.07, ""centuries"": 43}"
+Jasprit Bumrah,Bowler,India,120,"India's premier fast bowler","{""wickets"": 121, ""economy"": 4.17, ""bestFigures"": ""6/27""}"
+Ben Stokes,All-rounder,England,140,"England's star all-rounder","{""runs"": 4956, ""wickets"": 174, ""average"": 35.89}"
+MS Dhoni,Wicket-keeper,India,125,"Former Indian captain and wicket-keeper","{""runs"": 10773, ""dismissals"": 444, ""strikeRate"": 87.56}"
+Kagiso Rabada,Bowler,South Africa,110,"South African fast bowler","{""wickets"": 243, ""economy"": 4.73, ""bestFigures"": ""7/112""}"`;
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'ipl-auction-player-template.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+    
+    toast({ title: "CSV template downloaded successfully!" });
+  };
+
+  // Check admin access
+  if (!isAdmin) {
+    return (
+      <Alert>
+        <Lock className="h-4 w-4" />
+        <AlertDescription>
+          Player management is restricted to administrators only. Contact your admin for access.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
   if (isLoading) {
     return <div className="animate-pulse">Loading players...</div>;
   }
@@ -126,6 +163,11 @@ export default function PlayerManagement() {
               </Button>
             </Label>
           </div>
+          
+          <Button onClick={handleDownloadTemplate} variant="outline" size="sm">
+            <Download className="h-4 w-4 mr-2" />
+            Download Template
+          </Button>
         </div>
 
         {/* Search and Filters */}

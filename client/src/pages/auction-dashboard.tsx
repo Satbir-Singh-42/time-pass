@@ -3,8 +3,11 @@ import { useQuery } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Upload, Users, Trophy, Activity, FileDown, LogOut } from "lucide-react";
-import { Link } from "wouter";
+import { Badge } from "@/components/ui/badge";
+import { Upload, Users, Trophy, Activity, FileDown, LogOut, Settings, Download } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { signOut } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 
 // Import components for each section
 import PlayerManagement from "@/components/player-management";
@@ -16,6 +19,7 @@ import Leaderboard from "@/components/leaderboard";
 
 export default function AuctionDashboard() {
   const [activeTab, setActiveTab] = useState("players");
+  const { user, isAdmin } = useAuth();
 
   // Fetch dashboard stats
   const { data: stats, isLoading } = useQuery({
@@ -23,9 +27,15 @@ export default function AuctionDashboard() {
     refetchInterval: 5000, // Refresh every 5 seconds for live updates
   });
 
-  const handleSignOut = () => {
-    // Add sign out logic here
-    window.location.href = "/";
+  const handleSignOut = async () => {
+    try {
+      if (auth) {
+        await signOut(auth);
+      }
+      window.location.href = "/";
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
   };
 
   const handleExportResults = () => {
@@ -34,6 +44,23 @@ export default function AuctionDashboard() {
     link.href = '/api/export/results';
     link.download = 'ipl-auction-results.csv';
     link.click();
+  };
+
+  const handleDownloadTemplate = () => {
+    // Download CSV template
+    const csvContent = `name,role,country,basePrice,bio,performanceStats
+Example Player,Batsman,India,150,"Star batsman and captain","{""runs"": 12000, ""average"": 59.07, ""centuries"": 43}"
+Example Bowler,Bowler,India,120,"Premier fast bowler","{""wickets"": 121, ""economy"": 4.17, ""bestFigures"": ""6/27""}"
+Example All-rounder,All-rounder,England,140,"Star all-rounder","{""runs"": 4956, ""wickets"": 174, ""average"": 35.89}"
+Example Keeper,Wicket-keeper,India,125,"Wicket-keeper batsman","{""runs"": 10773, ""dismissals"": 444, ""strikeRate"": 87.56}"`;
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'ipl-auction-player-template.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
   };
 
   if (isLoading) {
@@ -51,10 +78,21 @@ export default function AuctionDashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
-              <Trophy className="h-8 w-8 text-blue-600" />
-              <h1 className="text-2xl font-bold text-gray-900">IPL Auction Visualizer</h1>
+              <Settings className="h-8 w-8 text-blue-600" />
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">IPL Auction Admin</h1>
+                <p className="text-sm text-gray-600">Welcome, {user?.displayName || user?.email}</p>
+              </div>
             </div>
             <div className="flex items-center space-x-4">
+              <Badge variant="default" className="bg-red-600">
+                <div className="w-2 h-2 bg-white rounded-full mr-2 animate-pulse"></div>
+                Admin Access
+              </Badge>
+              <Button onClick={handleDownloadTemplate} variant="outline" size="sm">
+                <Download className="h-4 w-4 mr-2" />
+                CSV Template
+              </Button>
               <Button onClick={handleExportResults} variant="outline" size="sm">
                 <FileDown className="h-4 w-4 mr-2" />
                 Export Results

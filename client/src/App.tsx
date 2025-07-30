@@ -1,33 +1,18 @@
 import { Switch, Route } from "wouter";
-import { useState, useEffect } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { auth, hasFirebaseCredentials } from "@/lib/firebase";
-import { onAuthStateChanged, User } from "firebase/auth";
+import { AuthProvider } from "@/components/AuthProvider";
+import { useAuth } from "@/hooks/useAuth";
 import Landing from "@/pages/landing";
 import Login from "@/pages/login";
 import AuctionDashboard from "@/pages/auction-dashboard";
+import ViewerDashboard from "@/pages/viewer-dashboard";
 import NotFound from "@/pages/not-found";
 
-function App() {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!hasFirebaseCredentials || !auth) {
-      setLoading(false);
-      return;
-    }
-
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, []);
+function AppContent() {
+  const { user, loading, isAdmin } = useAuth();
 
   if (loading) {
     return (
@@ -41,21 +26,35 @@ function App() {
   }
 
   return (
+    <Switch>
+      <Route path="/" component={Landing} />
+      <Route path="/login" component={Login} />
+      <Route path="/dashboard">
+        {() => {
+          if (!user) return <Login />;
+          return isAdmin ? <AuctionDashboard /> : <ViewerDashboard />;
+        }}
+      </Route>
+      <Route path="/admin">
+        {() => user && isAdmin ? <AuctionDashboard /> : <Login />}
+      </Route>
+      <Route path="/viewer">
+        {() => user ? <ViewerDashboard /> : <Login />}
+      </Route>
+      <Route component={NotFound} />
+    </Switch>
+  );
+}
+
+function App() {
+  return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Switch>
-          <Route path="/" component={Landing} />
-          <Route path="/login" component={Login} />
-          <Route path="/dashboard">
-            {() => user ? <AuctionDashboard /> : <Login />}
-          </Route>
-          <Route path="/admin/dashboard">
-            {() => user ? <AuctionDashboard /> : <Login />}
-          </Route>
-          <Route component={NotFound} />
-        </Switch>
-      </TooltipProvider>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <AppContent />
+        </TooltipProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
